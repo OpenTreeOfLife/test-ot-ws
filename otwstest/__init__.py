@@ -96,15 +96,15 @@ SYST_CHOICES = frozenset(['production', 'dev', 'local'])
 
 
 class TestingConfig(object):
-    def __init__(self, system_to_test, verbose=False):
+    def __init__(self, system_to_test, noise_level=2):
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
-        self.verbose = verbose
+        self.noise_level = noise_level
 
     def as_arg_list(self):
-        a = ['--system={}'.format(self.system_to_test)]
-        if self.verbose:
-            a.append('--verbose')
+        a = ['--system={}'.format(self.system_to_test),
+             '--noise={}'.format(self.noise_level),
+            ]
         return a
 
     def run_test(self, test_addr, test_func, test_results):
@@ -129,15 +129,15 @@ def _collect_file_func_pairs(mod_obj, addr):
             ret.extend(_collect_file_func_pairs(v, extended))
     return ret
 
-def _aug_comp_list_eq(opts_to_values, key, val_start, comp_list):
+def _aug_comp_list_eq(opts_to_values, key, comp_list):
     vals = opts_to_values.get(key, [])
-    comp_list.extend(['--{}={}'.format(key, i) for i in vals])
+    comp_list.extend(['{}={}'.format(key, i) for i in vals])
 
 def _aug_comp_list_eq_started(opts_to_values, key, val_start, comp_list):
     vals = opts_to_values.get(key, [])
     if val_start in vals:
         return True
-    comp_list.extend(['--{}={}'.format(key, i) for i in vals if i.startswith(val_start)])
+    comp_list.extend([i for i in vals if i.startswith(val_start)])
     return False
 
 def top_main(argv, deleg=None):
@@ -152,6 +152,8 @@ def top_main(argv, deleg=None):
                    help=argparse.SUPPRESS)
     p.add_argument("--noise",
                    default=2,
+                   type=int,
+                   required=False,
                    help='Controls level of output sent to standard error: 0=silent, ' \
                         '1=only numbers of outcomes, 2(default)=progress and outcomes, '\
                         '3=brief message for each failure, 4=detailed messages, '\
@@ -167,7 +169,7 @@ def top_main(argv, deleg=None):
             a = argv[3:]
         except Exception:
             a = []
-        sys.stderr.write('\na={}\n'.format(a))
+        # sys.stderr.write('\na={}\n'.format(a))
         opts_to_values = {'--system': SYST_CHOICES,
                           '--noise': [str(i) for i in range(6)],
                           }
@@ -179,8 +181,8 @@ def top_main(argv, deleg=None):
                 # completing an option
                 assert '=' not in last
                 for key, vals in opts_to_values.items():
-                    if key.startswith(last):
-                        comp_list.extend(['--{}={}'.format(last, i) for i in vals])
+                    if key.startswith(last) and key not in a:
+                        comp_list.extend(['{}={}'.format(key, i) for i in vals])
             elif last == '=':
                 # = sign separating an option from its value.
                 if len(a) > 1:
@@ -189,6 +191,14 @@ def top_main(argv, deleg=None):
                 # complete a the value in progress
                 if _aug_comp_list_eq_started(opts_to_values, a[-3], last, comp_list):
                     ov_end = True
+            else:
+                for s in serv_choices:
+                    if s.startswith(last):
+                        if s == last:
+                            ov_end = True
+                            break
+                        else:
+                            comp_list.append(s)
         if ov_end:
             for s in serv_choices:
                 if s not in a:
@@ -197,7 +207,7 @@ def top_main(argv, deleg=None):
                 if o not in a:
                     comp_list.append(o)
         sys.stdout.write('{}\n'.format(' '.join(comp_list)))
-        # sys.stderr.write('\n{}\n'.format(' '.join(comp_list)))
+        # sys.stderr.write('\nfinal return: {}\n'.format(' '.join(comp_list)))
         return tr
     parsed = p.parse_args(args=argv[1:])
     tc = TestingConfig(system_to_test=parsed.system,
@@ -205,7 +215,10 @@ def top_main(argv, deleg=None):
     if deleg is None:
         # noinspection PyUnresolvedReferences
         import otwstest
-        services = list(parsed.service or serv_choices)
+        s = parsed.service
+        if isinstance(s, str):
+            s = [s]
+        services = list(s or serv_choices)
         services.sort()
         addr = 'otwstest.'
         file_func_pairs = []

@@ -3,44 +3,114 @@
 
 import sys
 import types
+import traceback
+from enum import Enum
 
 from . import taxonomy
 
 
-def run_test(test_config, test_addr, test_func, test_results):
-    """Core"""
-    try:
-        if test_func(test_config, test_addr, test_results):
-            return True
-    except Exception:
-        test_results.flag_uncaught(test_addr)
-    return False
-
 def run_tests(test_config, addr_fn_pairs_list, test_results):
     good = True
     for test_addr, fn in addr_fn_pairs_list:
-        good = run_test(test_config,
-                        test_addr=test_addr,
-                        test_func=fn,
-                        test_results=test_results) and good
+        good = test_config.run_test(test_addr=test_addr,
+                                    test_func=fn,
+                                    test_results=test_results) and good
     return good
-
 
 
 class TestResults(object):
     def __init__(self):
         self._run = []
-        self._skipped = []
-        self._failures = []
         self._errors = []
+        self._failures = []
+        self._skipped = []
         self._exceptions_uncaught = []
+        self._spawned_unfinished = set()
 
-    def flag_uncaught(self, addr):
-        self._exceptions_uncaught.append(addr)
+    def _reg_as_finished(self, outcome):
+        self._run.append(outcome)
+        try:
+            self._spawned_unfinished.remove(outcome)
+        except Exception:
+            pass
+
+    def register_error(self, outcome):
+        self._reg_as_finished(outcome)
+        self._errors.append(outcome)
+
+    def register_failure(self, outcome):
+        self._reg_as_finished(outcome)
+        self._failures.append(outcome)
+
+    def register_skipped(self, outcome):
+        self._reg_as_finished(outcome)
+        self._skipped.append(outcome)
+
+    def register_success(self, outcome):
+        self._reg_as_finished(outcome)
+
+    def register_uncaught(self, outcome):
+        self._reg_as_finished(outcome)
+        self._exceptions_uncaught.append(outcome)
 
     @property
     def num_problems(self):
         return sum([len(i) for i in (self._failures, self._errors, self._exceptions_uncaught)])
+
+    # noinspection PyUnusedLocal
+    def spawning_test(self, config, test_addr):
+        tout = TestOutcome(self, test_addr)
+        self._spawned_unfinished.add(tout)
+        return tout
+
+
+class TestStatus(Enum):
+    RUNNING = 0
+    SUCCESS = 1
+    FAILED = 2
+    ERROR = 3
+    SKIPPED = 4
+    UNCAUGHT_EXCEPTION = 5  # error not caught by test function
+
+
+class TestOutcome(object):
+    def __init__(self, results_obj, test_addr):
+        self.test_addr = test_addr
+        self.status = TestStatus.RUNNING
+        self._results_collection = results_obj
+        self._data = {}
+
+    @property
+    def succeeded(self):
+        return self.status == TestStatus.SUCCESS
+
+    def __hash__(self):
+        return hash(self.test_addr)
+
+    def uncaught(self, ex_message):
+        self.status = TestStatus.UNCAUGHT_EXCEPTION
+        self._data['exception'] = ex_message
+
+    def _finalize(self):
+        if self.status == TestStatus.RUNNING:
+            self.status = TestStatus.SUCCESS
+
+    def record(self, config):
+        self._finalize()
+        if self._results_collection:
+            status, rc = self.status, self._results_collection
+            if status == TestStatus.SUCCESS:
+                rc.register_success(self)
+            elif status == TestStatus.ERROR:
+                rc.register_error(self)
+            elif status == TestStatus.FAILED:
+                rc.register_failure(self)
+            elif status == TestStatus.SKIPPED:
+                rc.register_skipped(self)
+            elif status == TestStatus.UNCAUGHT_EXCEPTION:
+                rc.register_uncaught(self)
+            else:
+                assert False
 
 
 SYST_CHOICES = frozenset(['production', 'dev', 'local'])
@@ -57,6 +127,15 @@ class TestingConfig(object):
         if self.verbose:
             a.append('--verbose')
         return a
+
+    def run_test(self, test_addr, test_func, test_results):
+        outcome = test_results.spawning_test(self, test_addr)
+        try:
+            test_func(self, outcome)
+        except Exception:
+            outcome.uncaught(traceback.format_exc())
+        outcome.record(self)
+        return outcome.succeeded
 
 
 def _collect_file_func_pairs(mod_obj, addr):

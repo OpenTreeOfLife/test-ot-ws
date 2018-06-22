@@ -214,8 +214,12 @@ class TestOutcome(object):
             self.set_error(m)
             return None
         results = resp.json()
+        call_out['response_body'] = results
         if expected_response is not None:
             if results != expected_response:
+                call_out['expected_response_body'] = expected_response
+                m = 'Wrong response body. Expected {}. Got {}.'.format(results, expected_response)
+                self.set_error(m)
                 return None
         return results
 

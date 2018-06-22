@@ -8,6 +8,7 @@ import traceback
 import codecs
 import json
 from enum import Enum
+import requests
 
 from . import taxonomy
 
@@ -106,20 +107,25 @@ class TestResults(object):
 
     # noinspection PyUnusedLocal
     def spawning_test(self, config, test_addr):
-        tout = TestOutcome(self, test_addr)
+        tout = TestOutcome(self, test_addr, config)
         self._spawned_unfinished.add(tout)
         return tout
 
 
 class TestOutcome(object):
-    def __init__(self, results_obj, test_addr):
+    def __init__(self, results_obj, test_addr, config):
         self.test_addr = test_addr
+        self.config = config
         self.status = TestStatus.RUNNING
         self._results_collection = results_obj
         self._data = {}
+        self.brief, self.detailed = '', ''
 
     def store(self, key, value):
         self._data[key] = value
+
+    def get(self, key, default):
+        return self._data.setdefault(key, default)
 
     @property
     def succeeded(self):
@@ -152,6 +158,8 @@ class TestOutcome(object):
         m = None
         if self.status == TestStatus.UNCAUGHT_EXCEPTION:
             m = 'Exception not handled by test function (please report this error)'
+        elif self.status != TestStatus.SUCCESS:
+            m = '{}. {}'.format(_tstatus_to_str(self.status), self.brief)
         if m:
             config.status_message(3, '{}: {}\n'.format(self.test_addr, m))
 
@@ -160,23 +168,99 @@ class TestOutcome(object):
         if self.status == TestStatus.UNCAUGHT_EXCEPTION:
             m = 'Exception not handled by test function (please report this error).\nException:\n'
             m += self._data['exception']
+        elif self.status != TestStatus.SUCCESS:
+            m = '{}. {}'.format(_tstatus_to_str(self.status), self.detailed)
         if m:
             config.status_message(4, '{}: {}\n'.format(self.test_addr, m))
 
     def serialize(self, config):
         results_dir = config.get_results_dir(self.test_addr)
         outf = os.path.join(results_dir, 'outcome.json')
-        self.store('status', str(self.status)[len('TestStatus.'):])
+        self.store('status', _tstatus_to_str(self.status))
         write_as_json(self._data, outf, indent=2)
 
-SYST_CHOICES = frozenset(['production', 'dev', 'local'])
+    def raise_for_status(self, resp):
+        try:
+            resp.raise_for_status()
+        except Exception as e:
+            try:
+                j = resp.json()
+                m = '\n    '.join(['"{k}": {v}'.format(k=k, v=v) for k, v in r.items()])
+                sys.stderr.write('resp.json = {t}'.format(t=m))
+            except:
+                if resp.text:
+                    sys.stderr.write('resp.text = {t}\n'.format(t=resp.text))
+            raise e
 
+    def do_http_json(self,
+                     url,
+                     verb='GET',
+                     data=None,
+                     headers=None,
+                     expected_status=200,
+                     expected_response=None):
+        '''Call `url` with the http method of `verb`.
+        If specified `data` is passed using json.dumps
+        returns True if the response:
+             has the expected status code, AND
+             has the expected content (if expected_response is not None)
+        '''
+        if headers is None:
+            headers = {'content-type' : 'application/json', 'accept' : 'application/json', }
+        resp, call_out = self.request(verb, url, headers, data=data)
+        call_out['expected_status_code'] = expected_status
+        if resp.status_code != expected_status:
+            m = 'Wrong status code. Expected {}. Got {}.'.format(resp.status_code, expected_status)
+            self.set_error(m)
+            return None
+        results = resp.json()
+        if expected_response is not None:
+            if results != expected_response:
+                return None
+        return results
+
+    def request(self, verb, url, headers, data=None):
+        call_out = self.get('calls', [])
+        stored = {'url': url, 'verb': verb, 'headers': headers, 'data': data}
+        call_out.append(stored)
+        if data:
+            resp = requests.request(verb,
+                                    url,
+                                    headers=headers,
+                                    data=json.dumps(data),
+                                    allow_redirects=True)
+        else:
+            resp = requests.request(verb,
+                                    url,
+                                    headers=headers,
+                                    allow_redirects=True)
+        stored['status_code'] = resp.status_code
+        debug('Sent {v} to {s}\n'.format(v=verb, s=resp.url))
+        return resp, stored
+
+    def set_error(self, brief, detailed=None):
+        self.status = TestStatus.ERROR
+        self.brief = brief
+        self.detailed = detailed if detailed else brief
+
+def _tstatus_to_str(status):
+    return str(status)[len('TestStatus.'):]
+
+SYST_CHOICES = frozenset(['production', 'dev', 'local'])
+SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
+DEBUG_OUTPUT = False
+
+def debug(msg):
+    if DEBUG_OUTPUT:
+        sys.stderr.write('{} debug: {}\n'.format(SCRIPT_NAME, msg))
 
 class TestingConfig(object):
     def __init__(self, system_to_test, noise_level=2):
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
         self.noise_level = noise_level
+        if self.noise_level >= 5:
+            DEBUG_OUTPUT = True
         self.needs_newline = False
         self._res_par = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 
@@ -214,6 +298,18 @@ class TestingConfig(object):
         results.flush(self)
         if self.needs_newline:
             sys.stderr.write('\n')
+
+    def make_url(self, frag):
+        while frag.startswith('/'):
+            frag = frag[1:]
+        while frag.endswith('/'):
+            frag = frag[:-1]
+        if self.system_to_test == 'production':
+            return 'https://api.opentreeoflife.org/{}'.format(frag)
+        if self.system_to_test == 'dev':
+            return 'https://devapi.opentreeoflife.org/{}'.format(frag)
+        raise NotImplemented('local system_to_test')
+
 
 def _collect_file_func_pairs(mod_obj, addr):
     ret = []

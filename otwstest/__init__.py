@@ -9,6 +9,7 @@ import codecs
 import json
 from enum import Enum
 import requests
+import jsonschema
 
 from . import taxonomy
 
@@ -198,7 +199,8 @@ class TestOutcome(object):
                      data=None,
                      headers=None,
                      expected_status=200,
-                     expected_response=None):
+                     expected_response=None,
+                     schema=None):
         '''Call `url` with the http method of `verb`.
         If specified `data` is passed using json.dumps
         returns True if the response:
@@ -215,6 +217,12 @@ class TestOutcome(object):
             return None
         results = resp.json()
         call_out['response_body'] = results
+        if schema is not None:
+            try:
+                jsonschema.validate(results, schema)
+            except jsonschema.ValidationError as x:
+                m = 'Invalid response body. Schema validator says "{}".'.format(str(x))
+                self.set_error(m)
         if expected_response is not None:
             if results != expected_response:
                 call_out['expected_response_body'] = expected_response

@@ -1,2 +1,4 @@
 env
 test_ot_ws.egg-info
+build
+dist

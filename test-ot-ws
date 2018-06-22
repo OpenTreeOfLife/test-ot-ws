@@ -3,5 +3,4 @@
 from otwstest import top_main
 import sys
 
-test_results = top_main(sys.argv)
-sys.exit(test_results.num_failures)
+sys.exit(top_main(sys.argv).num_problems)

@@ -1,13 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 import types
 import traceback
+import codecs
+import json
 from enum import Enum
 
 from . import taxonomy
 
+if sys.version_info.major == 2:
+    def is_str_type(x):
+        # noinspection PyCompatibility
+        return isinstance(x, basestring)
+else:
+    def is_str_type(x):
+        return isinstance(x, str)
 
 def run_tests(test_config, addr_fn_pairs_list, test_results):
     good = True
@@ -17,6 +27,27 @@ def run_tests(test_config, addr_fn_pairs_list, test_results):
                                     test_results=test_results) and good
     return good
 
+def write_as_json(blob, dest, indent=0, sort_keys=True):
+    """Writes `blob` as JSON to the filepath `dest` or the filestream `dest` (if it isn't a string)
+    uses utf-8 encoding if the filepath is given (does not change the encoding if dest is already open).
+    """
+    opened_out = False
+    if is_str_type(dest):
+        out = codecs.open(dest, mode='w', encoding='utf-8')
+        opened_out = True
+    else:
+        out = dest
+    try:
+        if indent == 0:
+            json.dump(blob, out, indent=indent, sort_keys=sort_keys)
+        else:
+            json.dump(blob, out, indent=indent, sort_keys=sort_keys, separators=(',', ': '))
+        out.write('\n')
+    finally:
+        out.flush()
+        if opened_out:
+            out.close()
+
 class TestStatus(Enum):
     """Status integer used by TestOutcome instances"""
     RUNNING = 0
@@ -25,6 +56,13 @@ class TestStatus(Enum):
     ERROR = 3
     SKIPPED = 4
     UNCAUGHT_EXCEPTION = 5  # error not caught by test function
+
+STATUS_TO_SINGLE_LTR = {TestStatus.SUCCESS: '.',
+                        TestStatus.ERROR: 'E',
+                        TestStatus.FAILED: 'f',
+                        TestStatus.SKIPPED: 's',
+                        TestStatus.UNCAUGHT_EXCEPTION: 'X',
+                       }
 
 class TestResults(object):
     def __init__(self):
@@ -41,6 +79,15 @@ class TestResults(object):
                              TestStatus.SKIPPED: self._skipped,
                              TestStatus.UNCAUGHT_EXCEPTION: self._exceptions_uncaught,
                              }
+
+    def flush(self, context):
+        if context.noise_level >= 1:
+            m = '\n{} test(s) run. {} succeeded. {} failed. {} errored. {} skipped. '\
+                '{} raised exceptions.   {}/{} success rate.'
+            m = m.format(len(self._run), len(self._succeeded), len(self._failed),
+                         len(self._errored), len(self._skipped), len(self._exceptions_uncaught),
+                         len(self._succeeded), len(self._run) - len(self._skipped))
+            context.status_message(1, m)
 
     def _reg_as_finished(self, outcome):
         self._run.append(outcome)
@@ -71,6 +118,9 @@ class TestOutcome(object):
         self._results_collection = results_obj
         self._data = {}
 
+    def store(self, key, value):
+        self._data[key] = value
+
     @property
     def succeeded(self):
         return self.status == TestStatus.SUCCESS
@@ -80,7 +130,7 @@ class TestOutcome(object):
 
     def uncaught(self, ex_message):
         self.status = TestStatus.UNCAUGHT_EXCEPTION
-        self._data['exception'] = ex_message
+        self.store('exception', ex_message)
 
     def _finalize(self):
         if self.status == TestStatus.RUNNING:
@@ -90,7 +140,19 @@ class TestOutcome(object):
         self._finalize()
         if self._results_collection:
             self._results_collection.register(self)
+        self.serialize(config)
+        config.status_message(2, STATUS_TO_SINGLE_LTR[self.status])
+        if self.status != TestStatus.SUCCESS and config.noise_level > 2:
+            if config.noise_level == 3:
+                self.brief_diagnosis(config)
+            else:
+                self.full_diagnosis(config)
 
+    def serialize(self, config):
+        results_dir = config.get_results_dir(self.test_addr)
+        outf = os.path.join(results_dir, 'outcome.json')
+        self.store('status', str(self.status)[len('TestStatus.'):])
+        write_as_json(self._data, outf, indent=2)
 
 SYST_CHOICES = frozenset(['production', 'dev', 'local'])
 
@@ -100,6 +162,18 @@ class TestingConfig(object):
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
         self.noise_level = noise_level
+        self.needs_newline = False
+        self._res_par = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
+
+    def get_results_dir(self, addr):
+        cull_pref = 'otwstest.'
+        if addr.startswith(cull_pref):
+            addr = addr[len(cull_pref):]
+        addr = '/'.join(addr.split('.')[:-1])
+        res_dir = os.path.join(self._res_par, addr)
+        if not os.path.exists(res_dir):
+            os.makedirs(res_dir)
+        return res_dir
 
     def as_arg_list(self):
         a = ['--system={}'.format(self.system_to_test),
@@ -116,6 +190,15 @@ class TestingConfig(object):
         outcome.record(self)
         return outcome.succeeded
 
+    def status_message(self, level, message):
+        if self.noise_level >= level:
+            sys.stderr.write(message)
+            self.needs_newline = not message.endswith('\n')
+
+    def flush(self, results):
+        results.flush(self)
+        if self.needs_newline:
+            sys.stderr.write('\n')
 
 def _collect_file_func_pairs(mod_obj, addr):
     ret = []
@@ -216,17 +299,20 @@ def top_main(argv, deleg=None):
     parsed = p.parse_args(args=argv[1:])
     tc = TestingConfig(system_to_test=parsed.system,
                        noise_level=parsed.noise)
-    if deleg is None:
-        # noinspection PyUnresolvedReferences
-        import otwstest
-        s = parsed.service
-        if isinstance(s, str):
-            s = [s]
-        services = list(s or serv_choices)
-        services.sort()
-        addr = 'otwstest.'
-        file_func_pairs = []
-        for s in services:
-            file_func_pairs.extend(_collect_file_func_pairs(otwstest.__dict__[s], addr + s))
-        run_tests(tc, file_func_pairs, tr)
-    return tr
+    try:
+        if deleg is None:
+            # noinspection PyUnresolvedReferences
+            import otwstest
+            s = parsed.service
+            if isinstance(s, str):
+                s = [s]
+            services = list(s or serv_choices)
+            services.sort()
+            addr = 'otwstest.'
+            file_func_pairs = []
+            for s in services:
+                file_func_pairs.extend(_collect_file_func_pairs(otwstest.__dict__[s], addr + s))
+            run_tests(tc, file_func_pairs, tr)
+        return tr
+    finally:
+        tc.flush(tr)

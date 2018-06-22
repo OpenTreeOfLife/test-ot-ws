@@ -130,13 +130,17 @@ def _collect_file_func_pairs(mod_obj, addr):
     return ret
 
 def _aug_comp_list_eq(opts_to_values, key, comp_list):
-    vals = opts_to_values.get(key, [])
-    comp_list.extend(['{}={}'.format(key, i) for i in vals])
+    vals = list(opts_to_values.get(key, []))
+    vals.sort()
+    # sys.stderr.write('\nkey = {} vals={}\n'.format(key, vals))
+    comp_list.extend(['{}'.format(i) for i in vals])
 
 def _aug_comp_list_eq_started(opts_to_values, key, val_start, comp_list):
     vals = opts_to_values.get(key, [])
     if val_start in vals:
         return True
+    vals = list(vals)
+    vals.sort()
     comp_list.extend([i for i in vals if i.startswith(val_start)])
     return False
 

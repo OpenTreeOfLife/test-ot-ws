@@ -17,15 +17,30 @@ def run_tests(test_config, addr_fn_pairs_list, test_results):
                                     test_results=test_results) and good
     return good
 
+class TestStatus(Enum):
+    """Status integer used by TestOutcome instances"""
+    RUNNING = 0
+    SUCCESS = 1
+    FAILED = 2
+    ERROR = 3
+    SKIPPED = 4
+    UNCAUGHT_EXCEPTION = 5  # error not caught by test function
 
 class TestResults(object):
     def __init__(self):
         self._run = []
-        self._errors = []
-        self._failures = []
+        self._succeeded = []
+        self._errored = []
+        self._failed = []
         self._skipped = []
         self._exceptions_uncaught = []
         self._spawned_unfinished = set()
+        self._status2list = {TestStatus.SUCCESS: self._succeeded,
+                             TestStatus.ERROR: self._errored,
+                             TestStatus.FAILED: self._failed,
+                             TestStatus.SKIPPED: self._skipped,
+                             TestStatus.UNCAUGHT_EXCEPTION: self._exceptions_uncaught,
+                             }
 
     def _reg_as_finished(self, outcome):
         self._run.append(outcome)
@@ -34,43 +49,19 @@ class TestResults(object):
         except Exception:
             pass
 
-    def register_error(self, outcome):
+    def register(self, outcome):
         self._reg_as_finished(outcome)
-        self._errors.append(outcome)
-
-    def register_failure(self, outcome):
-        self._reg_as_finished(outcome)
-        self._failures.append(outcome)
-
-    def register_skipped(self, outcome):
-        self._reg_as_finished(outcome)
-        self._skipped.append(outcome)
-
-    def register_success(self, outcome):
-        self._reg_as_finished(outcome)
-
-    def register_uncaught(self, outcome):
-        self._reg_as_finished(outcome)
-        self._exceptions_uncaught.append(outcome)
+        self._status2list[outcome.status].append(outcome)
 
     @property
     def num_problems(self):
-        return sum([len(i) for i in (self._failures, self._errors, self._exceptions_uncaught)])
+        return sum([len(i) for i in (self._failed, self._errored, self._exceptions_uncaught)])
 
     # noinspection PyUnusedLocal
     def spawning_test(self, config, test_addr):
         tout = TestOutcome(self, test_addr)
         self._spawned_unfinished.add(tout)
         return tout
-
-
-class TestStatus(Enum):
-    RUNNING = 0
-    SUCCESS = 1
-    FAILED = 2
-    ERROR = 3
-    SKIPPED = 4
-    UNCAUGHT_EXCEPTION = 5  # error not caught by test function
 
 
 class TestOutcome(object):
@@ -98,19 +89,7 @@ class TestOutcome(object):
     def record(self, config):
         self._finalize()
         if self._results_collection:
-            status, rc = self.status, self._results_collection
-            if status == TestStatus.SUCCESS:
-                rc.register_success(self)
-            elif status == TestStatus.ERROR:
-                rc.register_error(self)
-            elif status == TestStatus.FAILED:
-                rc.register_failure(self)
-            elif status == TestStatus.SKIPPED:
-                rc.register_skipped(self)
-            elif status == TestStatus.UNCAUGHT_EXCEPTION:
-                rc.register_uncaught(self)
-            else:
-                assert False
+            self._results_collection.register(self)
 
 
 SYST_CHOICES = frozenset(['production', 'dev', 'local'])
@@ -150,6 +129,16 @@ def _collect_file_func_pairs(mod_obj, addr):
             ret.extend(_collect_file_func_pairs(v, extended))
     return ret
 
+def _aug_comp_list_eq(opts_to_values, key, val_start, comp_list):
+    vals = opts_to_values.get(key, [])
+    comp_list.extend(['--{}={}'.format(key, i) for i in vals])
+
+def _aug_comp_list_eq_started(opts_to_values, key, val_start, comp_list):
+    vals = opts_to_values.get(key, [])
+    if val_start in vals:
+        return True
+    comp_list.extend(['--{}={}'.format(key, i) for i in vals if i.startswith(val_start)])
+    return False
 
 def top_main(argv, deleg=None):
     import argparse
@@ -161,10 +150,12 @@ def top_main(argv, deleg=None):
                    action="store_true",
                    default=False,
                    help=argparse.SUPPRESS)
-    p.add_argument("--verbose",
-                   action="store_true",
-                   default=False,
-                   help='produce more output to standard error.')
+    p.add_argument("--noise",
+                   default=2,
+                   help='Controls level of output sent to standard error: 0=silent, ' \
+                        '1=only numbers of outcomes, 2(default)=progress and outcomes, '\
+                        '3=brief message for each failure, 4=detailed messages, '\
+                        '5=trace level')
 
     p.add_argument('--system', choices=SYST_CHOICES, default='production')
     serv_choices = ('taxonomy',)
@@ -172,34 +163,45 @@ def top_main(argv, deleg=None):
         p.add_argument('service', nargs='?', choices=serv_choices)
     tr = TestResults()
     if "--show-completions" in argv:
-        a = argv[1:]
-        # sys.stderr.write('a = {}\n'.format(a))
-        comp_list = []
-        tc_syst_choices = []
         try:
-            syst_ind = a.index('--system')
-        except ValueError:
-            tc_syst_choices = ['--system={}'.format(i) for i in SYST_CHOICES]
-        else:
-            if syst_ind + 1 < len(a) and a[1 + syst_ind] == '=':
-                if syst_ind + 3 == len(a):
-                    for c in SYST_CHOICES:
-                        if c.startswith(a[-1]) and c != a[-1]:
-                            tc_syst_choices.append(c)
-                elif syst_ind + 2 >= len(a):
-                    tc_syst_choices = SYST_CHOICES
-        comp_list.extend(tc_syst_choices)
-        if deleg is None:
-            if a[-1] != '=' and not a[-1].startswith('-'):
-                for s in serv_choices:
-                    if s not in a:
-                        comp_list.append(s)
+            a = argv[3:]
+        except Exception:
+            a = []
+        sys.stderr.write('\na={}\n'.format(a))
+        opts_to_values = {'--system': SYST_CHOICES,
+                          '--noise': [str(i) for i in range(6)],
+                          }
+        comp_list = []
+        ov_end = len(a) == 0
+        if not ov_end:
+            last = a[-1]
+            if last.startswith('-'):
+                # completing an option
+                assert '=' not in last
+                for key, vals in opts_to_values.items():
+                    if key.startswith(last):
+                        comp_list.extend(['--{}={}'.format(last, i) for i in vals])
+            elif last == '=':
+                # = sign separating an option from its value.
+                if len(a) > 1:
+                    _aug_comp_list_eq(opts_to_values, a[-2], comp_list)
+            elif len(a) > 2 and a[-2] == '=':
+                # complete a the value in progress
+                if _aug_comp_list_eq_started(opts_to_values, a[-3], last, comp_list):
+                    ov_end = True
+        if ov_end:
+            for s in serv_choices:
+                if s not in a:
+                    comp_list.append(s)
+            for o in opts_to_values.keys():
+                if o not in a:
+                    comp_list.append(o)
         sys.stdout.write('{}\n'.format(' '.join(comp_list)))
         # sys.stderr.write('\n{}\n'.format(' '.join(comp_list)))
         return tr
     parsed = p.parse_args(args=argv[1:])
     tc = TestingConfig(system_to_test=parsed.system,
-                       verbose=parsed.verbose)
+                       noise_level=parsed.noise)
     if deleg is None:
         # noinspection PyUnresolvedReferences
         import otwstest

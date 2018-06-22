@@ -148,6 +148,21 @@ class TestOutcome(object):
             else:
                 self.full_diagnosis(config)
 
+    def brief_diagnosis(self, config):
+        m = None
+        if self.status == TestStatus.UNCAUGHT_EXCEPTION:
+            m = 'Exception not handled by test function (please report this error)'
+        if m:
+            config.status_message(3, '{}: {}\n'.format(self.test_addr, m))
+
+    def full_diagnosis(self, config):
+        m = None
+        if self.status == TestStatus.UNCAUGHT_EXCEPTION:
+            m = 'Exception not handled by test function (please report this error).\nException:\n'
+            m += self._data['exception']
+        if m:
+            config.status_message(4, '{}: {}\n'.format(self.test_addr, m))
+
     def serialize(self, config):
         results_dir = config.get_results_dir(self.test_addr)
         outf = os.path.join(results_dir, 'outcome.json')

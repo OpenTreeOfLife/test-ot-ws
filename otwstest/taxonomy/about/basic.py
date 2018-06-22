@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 
-def tests():
+def tests(test_config, test_outcome):
     print('hi')

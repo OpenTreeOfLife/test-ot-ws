@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from otwstest.schema.taxonomy.about import validate
+from otwstest.schema.taxonomy.lica import validate
 
 def tests(config, outcome):
     url = config.make_url('v2/taxonomy/lica')

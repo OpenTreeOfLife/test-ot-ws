@@ -178,6 +178,7 @@ class TestOutcome(object):
         results_dir = config.get_results_dir(self.test_addr)
         outf = os.path.join(results_dir, 'outcome.json')
         self.store('status', _tstatus_to_str(self.status))
+        self.store('test_addr', self.test_addr)
         write_as_json(self._data, outf, indent=2)
 
     def raise_for_status(self, resp):
@@ -264,6 +265,7 @@ def _tstatus_to_str(status):
     return str(status)[len('TestStatus.'):]
 
 SYST_CHOICES = frozenset(['production', 'dev', 'local'])
+ACTION_CHOICES = frozenset(['test', 'retry-failing'])
 SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT = False
 
@@ -279,7 +281,8 @@ class TestingConfig(object):
         if self.noise_level >= 5:
             DEBUG_OUTPUT = True
         self.needs_newline = False
-        self._res_par = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
+        gp = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
+        self._res_par = os.path.join(gp, system_to_test)
 
     def get_results_dir(self, addr):
         cull_pref = 'otwstest.'
@@ -327,6 +330,13 @@ class TestingConfig(object):
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
         raise NotImplemented('local system_to_test')
 
+    def iter_previous(self):
+        if not os.path.exists(self._res_par):
+            return
+        for dir, sub, file_list in os.walk(self._res_par):
+            for fn in file_list:
+                if fn == 'outcome.json':
+                    yield json.load(codecs.open(os.path.join(dir, fn), 'rU', encoding='utf-8'))
 
 def _collect_file_func_pairs(mod_obj, addr):
     ret = []
@@ -374,6 +384,7 @@ def top_main(argv, deleg=None):
                         '3=brief message for each failure, 4=detailed messages, '\
                         '5=trace level')
 
+    p.add_argument('--action', choices=ACTION_CHOICES, default='test')
     p.add_argument('--system', choices=SYST_CHOICES, default='production')
     serv_choices = ('taxonomy',)
     if deleg is None:
@@ -387,6 +398,7 @@ def top_main(argv, deleg=None):
         # sys.stderr.write('\na={}\n'.format(a))
         opts_to_values = {'--system': SYST_CHOICES,
                           '--noise': [str(i) for i in range(6)],
+                          '--actions': ACTION_CHOICES,
                           }
         comp_list = []
         ov_end = len(a) == 0
@@ -434,12 +446,20 @@ def top_main(argv, deleg=None):
             s = parsed.service
             if isinstance(s, str):
                 s = [s]
+
             services = list(s or serv_choices)
             services.sort()
             addr = 'otwstest.'
             file_func_pairs = []
             for s in services:
                 file_func_pairs.extend(_collect_file_func_pairs(otwstest.__dict__[s], addr + s))
+            addr_to_skip = []
+            if parsed.action == 'retry-failing':
+                for blob in tc.iter_previous():
+                    if blob.get('status', '').upper() == 'SUCCESS':
+                        addr_to_skip.append(blob['test_addr'])
+            addr_to_skip = frozenset(addr_to_skip)
+            file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
             run_tests(tc, file_func_pairs, tr)
         return tr
     finally:

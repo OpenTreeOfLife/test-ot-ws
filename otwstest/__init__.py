@@ -335,7 +335,7 @@ class TestingConfig(object):
         cull_pref = 'otwstest.'
         if addr.startswith(cull_pref):
             addr = addr[len(cull_pref):]
-        addr = '/'.join(addr.split('.')[:-1])
+        addr = '/'.join(addr.split('.'))
         res_dir = os.path.join(self._res_par, addr)
         if not os.path.exists(res_dir):
             os.makedirs(res_dir)

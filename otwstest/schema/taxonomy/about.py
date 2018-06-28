@@ -9,7 +9,7 @@ current = {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
     "author": {
-      "$id": "/properties/author",
+
       "type": "string",
       "default": "",
       "examples": [
@@ -17,7 +17,7 @@ current = {
       ]
     },
     "name": {
-      "$id": "/properties/name",
+
       "type": "string",
       "default": "",
       "examples": [
@@ -25,7 +25,7 @@ current = {
       ]
     },
     "source": {
-      "$id": "/properties/source",
+
       "type": "string",
       "default": "",
       "examples": [
@@ -33,7 +33,7 @@ current = {
       ]
     },
     "version": {
-      "$id": "/properties/version",
+
       "type": "string",
       "default": "",
       "examples": [
@@ -41,7 +41,7 @@ current = {
       ]
     },
     "weburl": {
-      "$id": "/properties/weburl",
+
       "type": "string",
       "default": "",
       "examples": [
@@ -65,4 +65,3 @@ def validate(doc, version='current'):
         m = 'Expecting "weburl" field to start with http found "{}"'.format(doc['weburl'])
         raise jsonschema.ValidationError(m)
     return True
-

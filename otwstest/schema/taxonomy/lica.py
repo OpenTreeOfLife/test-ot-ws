@@ -10,61 +10,30 @@ current = {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
     "lica": {
-      "$id": "/properties/lica",
       "type": "object",
       "properties": {
         "flags": {
-          "$id": "/properties/lica/properties/flags",
           "type": "array",
-          "items": {
-              "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "node_id": {
-          "$id": "/properties/lica/properties/node_id",
-          "type": "integer"
-        },
-        "ot:ottId": {
-          "$id": "/properties/lica/properties/ot:ottId",
-          "type": "integer"
-        },
-        "ot:ottTaxonName": {
-          "$id": "/properties/lica/properties/ot:ottTaxonName",
-          "type": "string"
-        },
-        "rank": {
-          "$id": "/properties/lica/properties/rank",
-          "type": "string"
-        },
+        "node_id": {"type": "integer"},
+        "ot:ottId": {"type": "integer"},
+        "ot:ottTaxonName": {"type": "string"},
+        "rank": {"type": "string"},
         "synonyms": {
-          "$id": "/properties/lica/properties/synonyms",
           "type": "array",
-          "items": {
-            "$id": "/properties/lica/properties/synonyms/items",
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
         "tax_sources": {
-          "$id": "/properties/lica/properties/tax_sources",
           "type": "array",
-          "items": {
-            "$id": "/properties/lica/properties/tax_sources/items",
-            "type": "string"
-          }
+          "items": {"type": "string"}
         },
-        "unique_name": {
-          "$id": "/properties/lica/properties/unique_name",
-          "type": "string"
-        }
+        "unique_name": {"type": "string"}
       }
     },
     "ott_ids_not_found": {
-      "$id": "/properties/ott_ids_not_found",
       "type": "array",
-      "items": {
-        "$id": "/properties/lica/properties/tax_sources/items",
-        "type": "string"
-      }
+      "items": {"type": "string"}
     }
   }
 }

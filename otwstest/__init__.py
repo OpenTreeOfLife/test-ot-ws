@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import absolute_import
 import os
 import sys
 import types
 import traceback
 import codecs
 import json
-from enum import Enum
+try:
+    from enum import Enum
+except:
+    from enum34 import Enum
 import requests
 import jsonschema
-
-from . import taxonomy
 
 if sys.version_info.major == 2:
     # noinspection PyUnresolvedReferences
@@ -521,3 +522,6 @@ def top_main(argv, deleg=None):
         return tr
     finally:
         tc.flush(tr)
+
+from . import taxonomy, schema
+

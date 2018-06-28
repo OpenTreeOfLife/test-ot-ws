@@ -260,7 +260,7 @@ class TestOutcome(object):
                                     headers=headers,
                                     allow_redirects=True)
         stored['status_code'] = resp.status_code
-        debug('Sent {v} to {s}\n'.format(v=verb, s=resp.url))
+        debug('Sent {v} to {s}'.format(v=verb, s=resp.url))
         return resp, stored
 
     def set_error(self, brief, detailed=None):

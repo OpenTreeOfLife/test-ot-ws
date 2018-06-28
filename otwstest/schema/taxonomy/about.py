@@ -8,46 +8,11 @@ current = {
   "type": "object",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
-    "author": {
-
-      "type": "string",
-      "default": "",
-      "examples": [
-        "open tree of life project"
-      ]
-    },
-    "name": {
-
-      "type": "string",
-      "default": "",
-      "examples": [
-        "ott"
-      ]
-    },
-    "source": {
-
-      "type": "string",
-      "default": "",
-      "examples": [
-        "ott3.0draft6"
-      ]
-    },
-    "version": {
-
-      "type": "string",
-      "default": "",
-      "examples": [
-        "3.0"
-      ]
-    },
-    "weburl": {
-
-      "type": "string",
-      "default": "",
-      "examples": [
-        "https://tree.opentreeoflife.org/about/taxonomy-version/ott3.0"
-      ]
-    }
+    "author": {"type": "string"},
+    "name": {"type": "string"},
+    "source": {"type": "string"},
+    "version": {"type": "string"},
+    "weburl": {"type": "string"}
   },
   "required": ["author", "name", "source", "version", "weburl"]
 }

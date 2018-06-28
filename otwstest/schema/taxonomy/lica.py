@@ -33,7 +33,7 @@ current = {
     },
     "ott_ids_not_found": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {"type": "integer"}
     }
   }
 }

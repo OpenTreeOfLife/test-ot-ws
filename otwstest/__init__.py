@@ -236,7 +236,6 @@ class TestOutcome(object):
             except jsonschema.ValidationError as x:
                 m = 'Invalid response body. Validator says: {}'.format(str(x))
                 self.set_error(m)
-
         if expected_response is not None:
             if results != expected_response:
                 call_out['expected_response_body'] = expected_response
@@ -266,6 +265,13 @@ class TestOutcome(object):
 
     def set_error(self, brief, detailed=None):
         self.status = TestStatus.ERROR
+        self._set_explanation(brief, detailed)
+
+    def set_failure(self, brief, detailed=None):
+        self.status = TestStatus.FAILED
+        self._set_explanation(brief, detailed)
+
+    def _set_explanation(self, brief, detailed):
         self.brief = brief
         self.detailed = detailed if detailed else brief
 
@@ -428,12 +434,12 @@ def top_main(argv, deleg=None):
                    default=False,
                    help=argparse.SUPPRESS)
     p.add_argument("--noise",
-                   default=2,
+                   default=3,
                    type=int,
                    required=False,
                    help='Controls level of output sent to standard error: 0=silent, '
-                        '1=only numbers of outcomes, 2(default)=progress and outcomes, '
-                        '3=brief message for each failure, 4=detailed messages, '
+                        '1=only numbers of outcomes, 2=progress and outcomes, '
+                        '3(default)=brief message for each failure, 4=detailed messages, '
                         '5=trace level')
 
     p.add_argument('--action', choices=ACTION_CHOICES, default='test')

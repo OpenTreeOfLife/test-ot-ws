@@ -24,8 +24,9 @@ _version2schema = {'current': current, 'v2': v2, 'v3': v3}
 def validate(doc, version='current'):
     schema = _version2schema[version]
     jsonschema.validate(doc, schema)
-    for p in schema["required"]:
-        if doc[p] < 0:
-            m = 'Expecting "{}" field to be non-negative, found "{}"'.format(p, doc[p])
-            raise jsonschema.ValidationError(m)
+    s = doc["subtree"]
+    if not s.startswith('('):
+        c = s if len(s) == 0 else s[0]
+        m = 'Expecting "subtree" field to be start with a ( found "{}"'.format(c)
+        raise jsonschema.ValidationError(m)
     return True

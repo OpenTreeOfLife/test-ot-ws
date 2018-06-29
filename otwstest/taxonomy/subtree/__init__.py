@@ -4,7 +4,7 @@ from otwstest.schema.taxonomy.subtree import validate
 import re
 
 
-def testsimple(config, outcome):
+def test_simple(config, outcome):
     url = config.make_url('v2/taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698},
                                   expected_status=200, validator=lambda x: validate(x, 'v2'))

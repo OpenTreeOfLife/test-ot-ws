@@ -4,6 +4,6 @@
 from otwstest.schema.taxonomy.about import validate
 
 
-def tests(config, outcome):
+def test_simple(config, outcome):
     url = config.make_url('v2/taxonomy/about')
     outcome.do_http_json(url, 'POST', expected_status=200, validator=lambda x: validate(x, 'v2'))

@@ -4,7 +4,7 @@ import copy
 import jsonschema
 
 current = {
-    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/flags.json",
+    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/subtree.json",
     "type": "object",
     "$schema": "http://json-schema.org/draft-07/schema#",
     "properties": {

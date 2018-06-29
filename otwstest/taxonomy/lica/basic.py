@@ -24,4 +24,4 @@ def test2(config, outcome):
     observered_id = blob['lica'][u'ot:ottId']
     if observered_id != expected_id:
         m = 'Expected LICA ottId to be {} , found {}\n'.format(expected_id, observered_id)
-        outcome.set_failure(m)
+        outcome.exit_test_with_failure(m)

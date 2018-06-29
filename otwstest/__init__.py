@@ -56,6 +56,8 @@ def write_as_json(blob, dest, indent=0, sort_keys=True):
         if opened_out:
             out.close()
 
+class TestEarlyExit(Exception):
+    pass
 
 class TestStatus(Enum):
     """Status integer used by TestOutcome instances"""
@@ -226,8 +228,7 @@ class TestOutcome(object):
         call_out['expected_status_code'] = expected_status
         if resp.status_code != expected_status:
             m = 'Wrong status code. Expected {}. Got {}.'.format(resp.status_code, expected_status)
-            self.set_error(m)
-            return None
+            self.exit_test_with_error(m)
         results = resp.json()
         call_out['response_body'] = results
         if schema is not None or validator is not None:
@@ -238,13 +239,12 @@ class TestOutcome(object):
                     validator(results)
             except jsonschema.ValidationError as x:
                 m = 'Invalid response body. Validator says: {}'.format(str(x))
-                self.set_error(m)
+                self.exit_test_with_error(m)
         if expected_response is not None:
             if results != expected_response:
                 call_out['expected_response_body'] = expected_response
                 m = 'Wrong response body. Expected {}. Got {}.'.format(results, expected_response)
-                self.set_error(m)
-                return None
+                self.exit_test_with_error(m)
         return results
 
     def request(self, verb, url, headers, data=None):
@@ -266,13 +266,15 @@ class TestOutcome(object):
         debug('Sent {v} to {s}'.format(v=verb, s=resp.url))
         return resp, stored
 
-    def set_error(self, brief, detailed=None):
+    def exit_test_with_error(self, brief, detailed=None):
         self.status = TestStatus.ERROR
         self._set_explanation(brief, detailed)
+        raise TestEarlyExit()
 
     def set_failure(self, brief, detailed=None):
         self.status = TestStatus.FAILED
         self._set_explanation(brief, detailed)
+        raise TestEarlyExit()
 
     def _set_explanation(self, brief, detailed):
         self.brief = brief
@@ -361,6 +363,8 @@ class TestingConfig(object):
         outcome = test_results.spawning_test(self, test_addr)
         try:
             test_func(self, outcome)
+        except TestEarlyExit:
+            pass
         except Exception:
             outcome.uncaught(traceback.format_exc())
         outcome.record(self)

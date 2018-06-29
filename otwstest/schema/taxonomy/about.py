@@ -4,17 +4,17 @@ import copy
 import jsonschema
 
 current = {
-  "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/about.json",
-  "type": "object",
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "properties": {
-    "author": {"type": "string"},
-    "name": {"type": "string"},
-    "source": {"type": "string"},
-    "version": {"type": "string"},
-    "weburl": {"type": "string"}
-  },
-  "required": ["author", "name", "source", "version", "weburl"]
+    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/about.json",
+    "type": "object",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+        "author": {"type": "string"},
+        "name": {"type": "string"},
+        "source": {"type": "string"},
+        "version": {"type": "string"},
+        "weburl": {"type": "string"}
+    },
+    "required": ["author", "name", "source", "version", "weburl"]
 }
 
 v3 = copy.deepcopy(current)
@@ -23,6 +23,7 @@ v2 = copy.deepcopy(current)
 v2['$id'] = v2['$id'].replace('/current/', '/v3/')
 
 _version2schema = {'current': current, 'v2': v2, 'v3': v3}
+
 
 def validate(doc, version='current'):
     jsonschema.validate(doc, _version2schema[version])

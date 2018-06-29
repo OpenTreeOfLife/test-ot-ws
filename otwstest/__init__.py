@@ -7,9 +7,11 @@ import types
 import traceback
 import codecs
 import json
+
 try:
     from enum import Enum
-except:
+except ImportError:
+    # noinspection PyPackageRequirements,PyUnresolvedReferences
     from enum34 import Enum
 import requests
 import jsonschema
@@ -202,6 +204,7 @@ class TestOutcome(object):
                     sys.stderr.write('resp.text = {t}\n'.format(t=resp.text))
             raise e
 
+    # noinspection PyShadowingNames
     def do_http_json(self,
                      url,
                      verb='GET',
@@ -529,5 +532,5 @@ def top_main(argv, deleg=None):
     finally:
         tc.flush(tr)
 
-from . import taxonomy, schema
 
+from . import taxonomy, schema

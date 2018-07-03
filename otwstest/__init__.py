@@ -499,7 +499,7 @@ def demand_property(prop, result, outcome, obj_type_name):
     if prop not in result:
         errstr = 'No "{}" property found in {} returned object.'.format(prop, obj_type_name)
         outcome.exit_test_with_failure(errstr)
-
+    return result.get(prop)
 
 def top_main(argv, deleg=None):
     import argparse

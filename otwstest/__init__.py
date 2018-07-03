@@ -331,7 +331,7 @@ SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT = False
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
-SERVICE_CHOICES = ('taxonomy',)
+SERVICE_CHOICES = ('taxonomy', 'tnrs')
 DEFAULT_NUM_THREADS = 8
 
 
@@ -616,4 +616,4 @@ def top_main(argv, deleg=None):
         tc.flush(tr)
 
 
-from . import taxonomy, schema
+from . import taxonomy, tnrs, schema

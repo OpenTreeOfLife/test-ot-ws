@@ -7,12 +7,15 @@ import types
 import traceback
 import codecs
 import json
+import threading
 
 try:
     from enum import Enum
+    from queue import Queue
 except ImportError:
     # noinspection PyPackageRequirements,PyUnresolvedReferences
     from enum34 import Enum
+    from threading import Queue
 import requests
 import jsonschema
 
@@ -26,13 +29,40 @@ else:
         return isinstance(x, str)
 
 
+TEST_QUEUE = Queue()
+ALL_PASSED = True
+ALL_PASSED_LOCK = threading.Lock()
+
+def _run_queued_test():
+    global ALL_PASSED
+    while True:
+        try:
+            blob = TEST_QUEUE.get_nowait()
+        except Exception:
+            break
+        fn, outcome, test_config = blob
+        ok = test_config.run_spawned_test(outcome, fn)
+        if not ok:
+            with ALL_PASSED_LOCK:
+                ALL_PASSED = False
+
+
 def run_tests(test_config, addr_fn_pairs_list, test_results):
-    good = True
     for test_addr, fn in addr_fn_pairs_list:
-        good = test_config.run_test(test_addr=test_addr,
-                                    test_func=fn,
-                                    test_results=test_results) and good
-    return good
+        outcome = test_results.spawning_test(test_config, test_addr)
+        TEST_QUEUE.put((fn, outcome, test_config))
+
+    threads = []
+    for i in range(min(test_config.num_threads, TEST_QUEUE.qsize())):
+        threads.append(threading.Thread(target=_run_queued_test))
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
+    with ALL_PASSED_LOCK:
+        return ALL_PASSED
 
 
 def write_as_json(blob, dest, indent=0, sort_keys=True):
@@ -78,49 +108,57 @@ STATUS_TO_SINGLE_LTR = {TestStatus.SUCCESS: '.',
 
 
 class TestResults(object):
+    _lock = threading.RLock()
+
     def __init__(self):
-        self._run = []
-        self._succeeded = []
-        self._errored = []
-        self._failed = []
-        self._skipped = []
-        self._exceptions_uncaught = []
-        self._spawned_unfinished = set()
-        self._status2list = {TestStatus.SUCCESS: self._succeeded,
-                             TestStatus.ERROR: self._errored,
-                             TestStatus.FAILED: self._failed,
-                             TestStatus.SKIPPED: self._skipped,
-                             TestStatus.UNCAUGHT_EXCEPTION: self._exceptions_uncaught,
-                             }
+        with TestResults._lock:
+            self._run = []
+            self._succeeded = []
+            self._errored = []
+            self._failed = []
+            self._skipped = []
+            self._exceptions_uncaught = []
+            self._spawned_unfinished = set()
+            self._status2list = {TestStatus.SUCCESS: self._succeeded,
+                                 TestStatus.ERROR: self._errored,
+                                 TestStatus.FAILED: self._failed,
+                                 TestStatus.SKIPPED: self._skipped,
+                                 TestStatus.UNCAUGHT_EXCEPTION: self._exceptions_uncaught,
+                                 }
 
     def flush(self, context):
         if context.noise_level >= 1 and len(self._run) > 0:
             m = '\n{} test(s) run. {} succeeded. {} failed. {} errored. {} skipped. ' \
                 '{} raised exceptions.   {}/{} success rate.'
-            m = m.format(len(self._run), len(self._succeeded), len(self._failed),
-                         len(self._errored), len(self._skipped), len(self._exceptions_uncaught),
-                         len(self._succeeded), len(self._run) - len(self._skipped))
+            with TestResults._lock:
+                m = m.format(len(self._run), len(self._succeeded), len(self._failed),
+                             len(self._errored), len(self._skipped), len(self._exceptions_uncaught),
+                             len(self._succeeded), len(self._run) - len(self._skipped))
             context.status_message(1, m)
 
     def _reg_as_finished(self, outcome):
-        self._run.append(outcome)
-        try:
-            self._spawned_unfinished.remove(outcome)
-        except Exception:
-            pass
+        with TestResults._lock:
+            self._run.append(outcome)
+            try:
+                self._spawned_unfinished.remove(outcome)
+            except Exception:
+                pass
 
     def register(self, outcome):
-        self._reg_as_finished(outcome)
-        self._status2list[outcome.status].append(outcome)
+        with TestResults._lock:
+            self._reg_as_finished(outcome)
+            self._status2list[outcome.status].append(outcome)
 
     @property
     def num_problems(self):
-        return sum([len(i) for i in (self._failed, self._errored, self._exceptions_uncaught)])
+        with TestResults._lock:
+            return sum([len(i) for i in (self._failed, self._errored, self._exceptions_uncaught)])
 
     # noinspection PyUnusedLocal
     def spawning_test(self, config, test_addr):
         tout = TestOutcome(self, test_addr, config)
-        self._spawned_unfinished.add(tout)
+        with TestResults._lock:
+            self._spawned_unfinished.add(tout)
         return tout
 
 
@@ -349,7 +387,7 @@ def scan_for_services(services):
 
 
 class TestingConfig(object):
-    def __init__(self, system_to_test, noise_level=2):
+    def __init__(self, system_to_test, noise_level=2, num_threads=10):
         global DEBUG_OUTPUT
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
@@ -357,6 +395,7 @@ class TestingConfig(object):
         if self.noise_level >= 5:
             DEBUG_OUTPUT = True
         self.needs_newline = False
+        self.num_threads = num_threads
         self._res_par = os.path.join(TEST_CACHE_PAR, system_to_test)
 
     def get_results_dir(self, addr):
@@ -377,6 +416,9 @@ class TestingConfig(object):
 
     def run_test(self, test_addr, test_func, test_results):
         outcome = test_results.spawning_test(self, test_addr)
+        self.run_spawned_test(outcome, test_func)
+
+    def run_spawned_test(self, outcome, test_func):
         try:
             test_func(self, outcome)
         except TestEarlyExit:
@@ -445,6 +487,11 @@ def _aug_comp_list_eq_started(opts_to_values, key, val_start, comp_list):
     comp_list.extend([i for i in vals if i.startswith(val_start)])
     return False
 
+def demand_property(prop, result, outcome, obj_type_name):
+    if prop not in result:
+        errstr = 'No "{}" property found in {} returned object.'.format(prop, obj_type_name)
+        outcome.exit_test_with_failure(errstr)
+
 
 def top_main(argv, deleg=None):
     import argparse
@@ -464,7 +511,11 @@ def top_main(argv, deleg=None):
                         '1=only numbers of outcomes, 2=progress and outcomes, '
                         '3(default)=brief message for each failure, 4=detailed messages, '
                         '5=trace level')
-
+    p.add_argument("--threads",
+                   default=10,
+                   type=int,
+                   required=False,
+                   help='Controls number of threads used to spawn calls')
     p.add_argument('--action', choices=ACTION_CHOICES, default='test')
     p.add_argument('--system', choices=SYST_CHOICES, default='production')
     TEST_CHOICES = get_globbed_test_list()
@@ -483,6 +534,7 @@ def top_main(argv, deleg=None):
                           '--actions': ACTION_CHOICES,
                           '--system': SYST_CHOICES,
                           '--test': TEST_CHOICES,
+                          '--threads': [str(i) for i in range(20)],
                           }
         comp_list = []
         ov_end = len(a) == 0
@@ -517,12 +569,14 @@ def top_main(argv, deleg=None):
             for o in opts_to_values.keys():
                 if o not in a:
                     comp_list.append(o)
+        comp_list.extend(['-h', '--help'])
         sys.stdout.write('{}\n'.format(' '.join(comp_list)))
         # sys.stderr.write('\nfinal return: {}\n'.format(' '.join(comp_list)))
         return tr
     parsed = p.parse_args(args=argv[1:])
     tc = TestingConfig(system_to_test=parsed.system,
-                       noise_level=parsed.noise)
+                       noise_level=parsed.noise,
+                       num_threads=parsed.threads)
     try:
         if deleg is None:
             # noinspection PyUnresolvedReferences

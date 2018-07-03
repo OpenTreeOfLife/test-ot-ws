@@ -308,16 +308,32 @@ def read_test_list_from_store():
         return []
     return json.load(codecs.open(TEST_ADDR_LIST, 'rU', encoding='utf-8'))
 
+TEST_NAME_PREF = 'otwstest.'
 
 def get_full_test_list():
     x = read_test_list_from_store()
     if not x:
         # noinspection PyTypeChecker
         x = [i[0] for i in scan_for_services(SERVICE_CHOICES)]
-    pref = 'otwstest.'
-    lp = len(pref)
-    return [i[lp:] if i.startswith(pref) else i for i in x]
+    lp = len(TEST_NAME_PREF)
+    return [i[lp:] if i.startswith(TEST_NAME_PREF) else i for i in x]
 
+def get_globbed_test_list():
+    ftl = get_full_test_list()
+    gts = set()
+    for f in ftl:
+        frag = f
+        while True:
+            if frag in gts:
+                break
+            gts.add(frag)
+            di = frag.rfind('.')
+            if di < 0:
+                break
+            frag = frag[:di]
+    gtl = list(gts)
+    gtl.sort()
+    return gtl
 
 def scan_for_services(services):
     if not isinstance(services, list):
@@ -451,7 +467,7 @@ def top_main(argv, deleg=None):
 
     p.add_argument('--action', choices=ACTION_CHOICES, default='test')
     p.add_argument('--system', choices=SYST_CHOICES, default='production')
-    TEST_CHOICES = get_full_test_list()
+    TEST_CHOICES = get_globbed_test_list()
     p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False)
 
     if deleg is None:
@@ -525,8 +541,9 @@ def top_main(argv, deleg=None):
             addr_to_skip = frozenset(addr_to_skip)
             file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
             if parsed.test is not None:
+                test_glob = '{}{}'.format(TEST_NAME_PREF, parsed.test)
                 try:
-                    file_func_pairs = [i for i in file_func_pairs if i[0].endswith(parsed.test)]
+                    file_func_pairs = [i for i in file_func_pairs if i[0].startswith(test_glob)]
                 except Exception:
                     pass
                 if len(file_func_pairs) == 0:

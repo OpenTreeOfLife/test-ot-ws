@@ -16,6 +16,7 @@ def test_simple(config, outcome):
         errstr = errstr.format(ROOTTAXONSTR, tree)
         outcome.exit_test_with_failure(errstr)
 
+
 def test_des_sp(config, outcome):
     url = config.make_url('v2/taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 372706},
@@ -23,7 +24,7 @@ def test_des_sp(config, outcome):
     tree = result[u'subtree']
     ROOTTAXONSTR = r"\)Canis_ott372706;"
     DESCENDANTTAXONSTR = r"\,Canis_lycaon_ott948004\,"
-    namecheck =  re.compile(ROOTTAXONSTR)
+    namecheck = re.compile(ROOTTAXONSTR)
     namecheck2 = re.compile(DESCENDANTTAXONSTR)
     if re.search(namecheck, tree) is None:
         errstr = 'the expected fragment "{}" does not appear at root of tree'

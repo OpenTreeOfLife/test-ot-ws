@@ -3,6 +3,7 @@
 import copy
 import jsonschema
 
+
 def taxon_obj_properties(version):
     p = {
         "flags": {
@@ -22,13 +23,14 @@ def taxon_obj_properties(version):
     }
     if version == 'v2':
         p["node_id"] = {"type": "integer"}
-        p["ot:ottId"]=  {"type": "integer"}
-        p["ot:ottTaxonName"]= {"type": "string"}
+        p["ot:ottId"] = {"type": "integer"}
+        p["ot:ottTaxonName"] = {"type": "string"}
     else:
         p["ott_id"] = {"type": "integer"}
         p["name"] = {"type": "string"}
         p["is_suppressed"] = {"type": "boolean"}
     return p
+
 
 current = {
     "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/taxon.json",
@@ -36,7 +38,6 @@ current = {
     "definitions": {},
     "$schema": "http://json-schema.org/draft-07/schema#"
 }
-
 
 v2 = copy.deepcopy(current)
 v2['properties'] = taxon_obj_properties('v2')

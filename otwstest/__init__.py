@@ -11,6 +11,7 @@ import threading
 
 try:
     from enum import Enum
+    # noinspection PyCompatibility
     from queue import Queue
 except ImportError:
     # noinspection PyPackageRequirements,PyUnresolvedReferences
@@ -28,10 +29,10 @@ else:
     def is_str_type(x):
         return isinstance(x, str)
 
-
 TEST_QUEUE = Queue()
 ALL_PASSED = True
 ALL_PASSED_LOCK = threading.Lock()
+
 
 def _run_queued_test():
     global ALL_PASSED
@@ -60,7 +61,6 @@ def run_tests(test_config, addr_fn_pairs_list, test_results):
     for t in threads:
         t.join()
 
-
     with ALL_PASSED_LOCK:
         return ALL_PASSED
 
@@ -86,8 +86,10 @@ def write_as_json(blob, dest, indent=0, sort_keys=True):
         if opened_out:
             out.close()
 
+
 class TestEarlyExit(Exception):
     pass
+
 
 class TestStatus(Enum):
     """Status integer used by TestOutcome instances"""
@@ -330,6 +332,7 @@ DEBUG_OUTPUT = False
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
 SERVICE_CHOICES = ('taxonomy',)
+DEFAULT_NUM_THREADS = 8
 
 
 def debug(msg):
@@ -346,7 +349,9 @@ def read_test_list_from_store():
         return []
     return json.load(codecs.open(TEST_ADDR_LIST, 'rU', encoding='utf-8'))
 
+
 TEST_NAME_PREF = 'otwstest.'
+
 
 def get_full_test_list():
     x = read_test_list_from_store()
@@ -355,6 +360,7 @@ def get_full_test_list():
         x = [i[0] for i in scan_for_services(SERVICE_CHOICES)]
     lp = len(TEST_NAME_PREF)
     return [i[lp:] if i.startswith(TEST_NAME_PREF) else i for i in x]
+
 
 def get_globbed_test_list():
     ftl = get_full_test_list()
@@ -373,6 +379,7 @@ def get_globbed_test_list():
     gtl.sort()
     return gtl
 
+
 def scan_for_services(services):
     if not isinstance(services, list):
         services = list(services)
@@ -387,7 +394,7 @@ def scan_for_services(services):
 
 
 class TestingConfig(object):
-    def __init__(self, system_to_test, noise_level=2, num_threads=10):
+    def __init__(self, system_to_test, noise_level=2, num_threads=DEFAULT_NUM_THREADS):
         global DEBUG_OUTPUT
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
@@ -487,6 +494,7 @@ def _aug_comp_list_eq_started(opts_to_values, key, val_start, comp_list):
     comp_list.extend([i for i in vals if i.startswith(val_start)])
     return False
 
+
 def demand_property(prop, result, outcome, obj_type_name):
     if prop not in result:
         errstr = 'No "{}" property found in {} returned object.'.format(prop, obj_type_name)
@@ -512,7 +520,7 @@ def top_main(argv, deleg=None):
                         '3(default)=brief message for each failure, 4=detailed messages, '
                         '5=trace level')
     p.add_argument("--threads",
-                   default=10,
+                   default=DEFAULT_NUM_THREADS,
                    type=int,
                    required=False,
                    help='Controls number of threads used to spawn calls')

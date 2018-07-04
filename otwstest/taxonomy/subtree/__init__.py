@@ -7,7 +7,7 @@ import re
 def test_simple(config, outcome):
     url = config.make_url('v2/taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698},
-                                  expected_status=200, validator=lambda x: validate(x, 'v2'))
+                                  validator=lambda x: validate(x, 'v2'))
     tree = result[u'subtree']
     ROOTTAXONSTR = r"\)Barnadesia_ott515698;"
     namecheck = re.compile(ROOTTAXONSTR)
@@ -20,7 +20,7 @@ def test_simple(config, outcome):
 def test_des_sp(config, outcome):
     url = config.make_url('v2/taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 372706},
-                                  expected_status=200, validator=lambda x: validate(x, 'v2'))
+                                  validator=lambda x: validate(x, 'v2'))
     tree = result[u'subtree']
     ROOTTAXONSTR = r"\)Canis_ott372706;"
     DESCENDANTTAXONSTR = r"\,Canis_lycaon_ott948004\,"

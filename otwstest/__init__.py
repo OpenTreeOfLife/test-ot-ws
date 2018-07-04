@@ -467,6 +467,8 @@ class TestingConfig(object):
 
 def _collect_file_func_pairs(mod_obj, addr):
     ret = []
+    if not mod_obj.__name__.startswith('otwstest'):
+        return ret
     for k, v in mod_obj.__dict__.items():
         if k.startswith('_'):
             continue

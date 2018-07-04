@@ -3,17 +3,28 @@
 import copy
 import jsonschema
 
-current = {
-    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/about.json",
-    "type": "object",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "properties": {
+def get_taxonomy_about_properties(version):
+    if version == 'v2':
+        return {
+            "author": {"type": "string"},
+            "name": {"type": "string"},
+            "source": {"type": "string"},
+            "version": {"type": "string"},
+            "weburl": {"type": "string"}
+        }
+    return {
         "author": {"type": "string"},
         "name": {"type": "string"},
         "source": {"type": "string"},
         "version": {"type": "string"},
         "weburl": {"type": "string"}
-    },
+    }
+
+current = {
+    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/about.json",
+    "type": "object",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": get_taxonomy_about_properties('v3'),
     "required": ["author", "name", "source", "version", "weburl"]
 }
 

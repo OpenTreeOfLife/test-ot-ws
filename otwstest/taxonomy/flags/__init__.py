@@ -4,6 +4,7 @@
 from otwstest.schema.taxonomy.flags import validate
 
 
-def test_simple(config, outcome):
-    url = config.make_url('v2/taxonomy/flags')
-    outcome.do_http_json(url, 'POST', validator=lambda x: validate(x, 'v2'))
+def test_simple(outcome):
+    url = outcome.make_url('taxonomy/flags')
+    outcome.do_http_json(url, 'POST', validator=validate)
+test_simple.api_versions = ('v2', 'v3')

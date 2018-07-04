@@ -8,6 +8,7 @@ import traceback
 import codecs
 import json
 import threading
+import re
 
 try:
     from enum import Enum
@@ -163,6 +164,7 @@ class TestResults(object):
             self._spawned_unfinished.add(tout)
         return tout
 
+_VERS_SPEC_PAT = re.compile(r'^v[0-9.]+$')
 
 class TestOutcome(object):
     def __init__(self, results_obj, test_addr, config):
@@ -171,6 +173,9 @@ class TestOutcome(object):
         self.status = TestStatus.RUNNING
         self._results_collection = results_obj
         self._data = {}
+        poss_v = test_addr.split('.')[-1]
+        assert(_VERS_SPEC_PAT.match(poss_v))
+        self.api_version = poss_v
 
     def store(self, key, value):
         self._data[key] = value
@@ -184,6 +189,11 @@ class TestOutcome(object):
 
     def __hash__(self):
         return hash(self.test_addr)
+
+    def make_url(self, frag):
+        while frag.startswith('/'):
+            frag = frag[1:]
+        return self.config.configure_url('{}/{}'.format(self.api_version, frag))
 
     def uncaught(self, ex_message):
         self.status = TestStatus.UNCAUGHT_EXCEPTION
@@ -226,7 +236,7 @@ class TestOutcome(object):
 
     def serialize(self, config):
         results_dir = config.get_results_dir(self.test_addr)
-        outf = os.path.join(results_dir, 'outcome.json')
+        outf = os.path.join(results_dir, '{}_outcome.json'.format(self.api_version))
         self.store('status', _tstatus_to_str(self.status))
         self.store('test_addr', self.test_addr)
         write_as_json(self._data, outf, indent=2)
@@ -261,6 +271,8 @@ class TestOutcome(object):
              has the expected status code, AND
              has the expected content (if expected_response is not None)
         """
+        if not self.config.testing_api_version(self.api_version):
+            self.exit_test_with_skipped('api {} tests skipped'.format(self.api_version))
         if headers is None:
             headers = {'content-type': 'application/json', 'accept': 'application/json', }
         resp, call_out = self.request(verb, url, headers, data=data)
@@ -275,7 +287,7 @@ class TestOutcome(object):
                 if schema is not None:
                     jsonschema.validate(results, schema)
                 if validator is not None:
-                    validator(results)
+                    validator(results, self.api_version)
             except jsonschema.ValidationError as x:
                 m = 'Invalid response body. Validator says: {}'.format(str(x))
                 self.exit_test_with_error(m)
@@ -312,6 +324,11 @@ class TestOutcome(object):
 
     def exit_test_with_failure(self, brief, detailed=None):
         self.status = TestStatus.FAILED
+        self._set_explanation(brief, detailed)
+        raise TestEarlyExit()
+
+    def exit_test_with_skipped(self, brief, detailed=None):
+        self.status = TestStatus.SKIPPED
         self._set_explanation(brief, detailed)
         raise TestEarlyExit()
 
@@ -393,7 +410,11 @@ def scan_for_services(services):
 
 
 class TestingConfig(object):
-    def __init__(self, system_to_test, noise_level=2, num_threads=DEFAULT_NUM_THREADS):
+    def __init__(self,
+                 system_to_test,
+                 noise_level=2,
+                 num_threads=DEFAULT_NUM_THREADS,
+                 api_versions='v3'):
         global DEBUG_OUTPUT
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
@@ -403,12 +424,18 @@ class TestingConfig(object):
         self.needs_newline = False
         self.num_threads = num_threads
         self._res_par = os.path.join(TEST_CACHE_PAR, system_to_test)
+        if is_str_type(api_versions):
+            api_versions = [api_versions]
+        self._testing_versions = set(api_versions)
+
+    def testing_api_version(self, api_version):
+        return api_version in self._testing_versions
 
     def get_results_dir(self, addr):
         cull_pref = 'otwstest.'
         if addr.startswith(cull_pref):
             addr = addr[len(cull_pref):]
-        addr = '/'.join(addr.split('.'))
+        addr = '/'.join(addr.split('.')[:-1])
         res_dir = os.path.join(self._res_par, addr)
         if not os.path.exists(res_dir):
             os.makedirs(res_dir)
@@ -426,7 +453,7 @@ class TestingConfig(object):
 
     def run_spawned_test(self, outcome, test_func):
         try:
-            test_func(self, outcome)
+            test_func(outcome)
         except TestEarlyExit:
             pass
         except Exception:
@@ -444,7 +471,7 @@ class TestingConfig(object):
         if self.needs_newline:
             sys.stderr.write('\n')
 
-    def make_url(self, frag):
+    def configure_url(self, frag):
         while frag.startswith('/'):
             frag = frag[1:]
         while frag.endswith('/'):
@@ -473,7 +500,13 @@ def _collect_file_func_pairs(mod_obj, addr):
             continue
         extended = '{}.{}'.format(addr, k)
         if k.startswith('test'):
-            ret.append((extended, v))
+            try:
+                vspec = v.api_versions
+                for vstr in vspec:
+                    ret.append(('{}.{}'.format(extended, vstr), v))
+            except Exception:
+                m = '{} matches pattern, but lacks api_versions attribute.\n'.format(extended)
+                sys.stderr.write(m)
         elif isinstance(v, types.ModuleType):
             ret.extend(_collect_file_func_pairs(v, extended))
     return ret
@@ -529,6 +562,8 @@ def top_main(argv, deleg=None):
     p.add_argument('--system', choices=SYST_CHOICES, default='production')
     TEST_CHOICES = get_globbed_test_list()
     p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False)
+    API_VERSION_CHOICES = ['v2', 'v3', 'all']
+    p.add_argument('--api-version', choices=API_VERSION_CHOICES, default='all', required=False)
 
     if deleg is None:
         p.add_argument('service', nargs='?', choices=SERVICE_CHOICES)
@@ -539,7 +574,8 @@ def top_main(argv, deleg=None):
         except Exception:
             a = []
         # sys.stderr.write('\na={}\n'.format(a))
-        opts_to_values = {'--noise': [str(i) for i in range(6)],
+        opts_to_values = {'--api-version': API_VERSION_CHOICES,
+                          '--noise': [str(i) for i in range(6)],
                           '--actions': ACTION_CHOICES,
                           '--system': SYST_CHOICES,
                           '--test': TEST_CHOICES,
@@ -583,9 +619,16 @@ def top_main(argv, deleg=None):
         # sys.stderr.write('\nfinal return: {}\n'.format(' '.join(comp_list)))
         return tr
     parsed = p.parse_args(args=argv[1:])
+    v = parsed.api_version
+    if v.lower() == 'all':
+        av = [i for i in API_VERSION_CHOICES if i != 'all']
+    else:
+        av = [v]
     tc = TestingConfig(system_to_test=parsed.system,
                        noise_level=parsed.noise,
-                       num_threads=parsed.threads)
+                       num_threads=parsed.threads,
+                       api_versions=av
+                       )
     try:
         if deleg is None:
             # noinspection PyUnresolvedReferences

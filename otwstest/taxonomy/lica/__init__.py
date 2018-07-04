@@ -4,11 +4,11 @@
 from otwstest.schema.taxonomy.lica import validate
 
 
-def test_bad_taxon(config, outcome):
-    url = config.make_url('v2/taxonomy/lica')
+def test_bad_taxon(outcome):
+    url = outcome.make_url('taxonomy/lica')
     expected_bad_id = 55518566
     blob = outcome.do_http_json(url, 'POST', data={"ott_ids": [expected_bad_id, 821970, 770319]},
-                                validator=lambda x: validate(x, 'v2'))
+                                validator=validate)
     expected_id = 770319
     observered_id = blob['lica'][u'ot:ottId']
     if observered_id != expected_id:
@@ -21,27 +21,30 @@ def test_bad_taxon(config, outcome):
     if expected_bad_id not in bad_ids:
         m = 'Expected to find {} in bad ids, found {}\n'.format(expected_bad_id, bad_ids)
         outcome.exit_test_with_failure(m)
+test_bad_taxon.api_versions = ('v2', 'v3')
 
 
-def test_simple(config, outcome):
-    url = config.make_url('v2/taxonomy/lica')
+def test_simple(outcome):
+    url = outcome.make_url('taxonomy/lica')
     outcome.do_http_json(url, 'POST', data={"ott_ids": [515698, 590452, 409712, 643717]},
-                         validator=lambda x: validate(x, 'v2'))
+                         validator=validate)
+test_simple.api_versions = ('v2', 'v3')
 
 
-def test_no_arg(config, outcome):
-    url = config.make_url('v2/taxonomy/lica')
-    outcome.do_http_json(url, 'POST', data={"ott_ids": []},
-                         validator=lambda x: validate(x, 'v2'))
+def test_no_arg(outcome):
+    url = outcome.make_url('taxonomy/lica')
+    outcome.do_http_json(url, 'POST', data={"ott_ids": []}, validator=validate)
     outcome.store('improved_status', 400)
+test_no_arg.api_versions = ('v2', 'v3')
 
 
-def test_2(config, outcome):
-    url = config.make_url('v2/taxonomy/lica')
+def test_2(outcome):
+    url = outcome.make_url('taxonomy/lica')
     blob = outcome.do_http_json(url, 'POST', data={"ott_ids": [901642, 55033]},
-                                validator=lambda x: validate(x, 'v2'))
+                                validator=validate)
     expected_id = 637370
     observered_id = blob['lica'][u'ot:ottId']
     if observered_id != expected_id:
         m = 'Expected LICA ottId to be {} , found {}\n'.format(expected_id, observered_id)
         outcome.exit_test_with_failure(m)
+test_2.api_versions = ('v2', 'v3')

@@ -311,7 +311,7 @@ class TestOutcome(object):
         self._set_explanation(brief, detailed)
         raise TestEarlyExit()
 
-    def set_failure(self, brief, detailed=None):
+    def exit_test_with_failure(self, brief, detailed=None):
         self.status = TestStatus.FAILED
         self._set_explanation(brief, detailed)
         raise TestEarlyExit()

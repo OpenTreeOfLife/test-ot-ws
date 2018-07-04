@@ -42,7 +42,7 @@ def test_contexts(config, outcome):  #taxonomy-sensitive test
     if 'Archaea' not in result['MICROBES']:
         errstr = 'Archaea not in context MICROBES'
         outcome.exit_test_with_failure(errstr)
-    if 'Arachnides' not in result['ANIMALS']:  # spelling?
+    if 'Arachnids' not in result['ANIMALS']:
         errstr = 'Arachnides not in context ANIMALS.'
         outcome.exit_test_with_failure(errstr)
 

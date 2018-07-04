@@ -22,7 +22,6 @@ def test_autocomplete_name(config, outcome):  #taxonomy-sensitive test
 
 def test_contexts(config, outcome):  #taxonomy-sensitive test
     url = config.make_url('v2/tnrs/contexts')
-    search_name = "Endoxyla"
     result = outcome.do_http_json(url, 'POST')
     for top, sub in result.items():
         if not is_str_type(top):
@@ -44,6 +43,18 @@ def test_contexts(config, outcome):  #taxonomy-sensitive test
         outcome.exit_test_with_failure(errstr)
     if 'Arachnids' not in result['ANIMALS']:
         errstr = 'Arachnides not in context ANIMALS.'
+        outcome.exit_test_with_failure(errstr)
+
+def test_infer_context(config, outcome):  #taxonomy-sensitive test
+    url = config.make_url('v2/tnrs/infer_context')
+    data = {"names":  ["Pan", "Homo", "Mus musculus", "Upupa epops"]}
+    result = outcome.do_http_json(url, 'POST', data=data,
+                                  validator=lambda x: tnrs.infer_context.validate(x, 'v2'))
+    if result['context_name'] != 'Tetrapods':
+        errstr = 'Expected context_name = Tetrapods, found "{}"'.format(result['context_name'])
+        outcome.exit_test_with_failure(errstr)
+    if result['ambiguous_names'] != []:
+        errstr = 'Expected no ambiguous_names, but found {}.'.format(result['ambiguous_names'])
         outcome.exit_test_with_failure(errstr)
 
 

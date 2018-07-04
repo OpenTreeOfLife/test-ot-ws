@@ -171,7 +171,6 @@ class TestOutcome(object):
         self.status = TestStatus.RUNNING
         self._results_collection = results_obj
         self._data = {}
-        self.brief, self.detailed = '', ''
 
     def store(self, key, value):
         self._data[key] = value
@@ -211,7 +210,7 @@ class TestOutcome(object):
         if self.status == TestStatus.UNCAUGHT_EXCEPTION:
             m = 'Exception not handled by test function (please report this error)'
         elif self.status != TestStatus.SUCCESS:
-            m = '{}. {}'.format(_tstatus_to_str(self.status), self.brief)
+            m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('brief', ''))
         if m:
             config.status_message(3, '{}: {}\n'.format(self.test_addr, m))
 
@@ -221,7 +220,7 @@ class TestOutcome(object):
             m = 'Exception not handled by test function (please report this error).\nException:\n'
             m += self._data['exception']
         elif self.status != TestStatus.SUCCESS:
-            m = '{}. {}'.format(_tstatus_to_str(self.status), self.detailed)
+            m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('detailed', ''))
         if m:
             config.status_message(4, '{}: {}\n'.format(self.test_addr, m))
 
@@ -317,8 +316,8 @@ class TestOutcome(object):
         raise TestEarlyExit()
 
     def _set_explanation(self, brief, detailed):
-        self.brief = brief
-        self.detailed = detailed if detailed else brief
+        self.store('brief', brief)
+        self.store('detailed', detailed if detailed else brief)
 
 
 def _tstatus_to_str(status):

@@ -35,7 +35,16 @@ def test_contexts(config, outcome):  #taxonomy-sensitive test
             if not is_str_type(s):
                 errstr = 'expecting values of tnrs/contexts to be a list of strings found {}'
                 outcome.exit_test_with_failure(errstr.format(repr(s)))
-
+    for k in ('PLANTS', 'ANIMALS', 'FUNGI', 'LIFE', 'MICROBES'):
+        if k not in result:
+            errstr = 'Missing key in context listing: "{}"'.format(k)
+            outcome.exit_test_with_failure(errstr)
+    if 'Archaea' not in result['MICROBES']:
+        errstr = 'Archaea not in context MICROBES'
+        outcome.exit_test_with_failure(errstr)
+    if 'Arachnides' not in result['ANIMALS']:  # spelling?
+        errstr = 'Arachnides not in context ANIMALS.'
+        outcome.exit_test_with_failure(errstr)
 
 
 

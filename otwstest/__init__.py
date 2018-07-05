@@ -441,7 +441,10 @@ class TestingConfig(object):
         addr = '/'.join(addr.split('.')[:-1])
         res_dir = os.path.join(self._res_par, addr)
         if not os.path.exists(res_dir):
-            os.makedirs(res_dir)
+            try:
+                os.makedirs(res_dir)
+            except FileExistsError:
+                pass
         return res_dir
 
     def as_arg_list(self):
@@ -483,7 +486,16 @@ class TestingConfig(object):
             return 'https://api.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'dev':
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
-        raise NotImplemented('local system_to_test')
+        if self.system_to_test == 'local':
+            tax_pat = re.compile(r'^(v[0-9.]+)/([a-z]+)/(.+)$')
+            m = tax_pat.match(frag)
+            if m:
+                vers, top_level, tail_frag = m.groups()
+                if top_level in ('taxonomy', 'tnrs'):
+                    t = 'http://localhost:7474/db/data/ext/{}_{}/graphdb/{}'
+                    return t.format(top_level, vers, tail_frag)
+            raise NotImplemented('non-taxonomy local system_to_test')
+        assert False
 
     def iter_previous(self):
         if not os.path.exists(self._res_par):

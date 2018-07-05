@@ -29,7 +29,7 @@ def get_version2schema():
     v2["required"] = [n]
     c = newick_property('current')
     current["properties"][c] = {"type": "string"}
-    v2["required"] = [c]
+    current["required"] = [c]
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
 

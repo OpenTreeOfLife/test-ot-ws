@@ -2,31 +2,40 @@
 # -*- coding: utf-8 -*-
 import copy
 import jsonschema
+from otwstest import compose_schema2version
 
-current = {
-    "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/subtree.json",
-    "type": "object",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "properties": {
-        "subtree": {"type": "string"}
-    },
-    "required": ["subtree"]
-}
+def _newick_property(version):
+    return 'subtree' if version == 'v2' else 'newick'
 
-v3 = copy.deepcopy(current)
-v3['$id'] = v3['$id'].replace('/current/', '/v3/')
-v2 = copy.deepcopy(current)
-v2['$id'] = v2['$id'].replace('/current/', '/v3/')
+_version2schema = None
 
-_version2schema = {'current': current, 'v2': v2, 'v3': v3}
+def get_version2schema():
+    global _version2schema
+    if _version2schema is not None:
+        return _version2schema
+    current = {
+        "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/subtree.json",
+        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+        },
+        "required": ["subtree"]
+    }
+    v2 = copy.deepcopy(current)
+    v2["properties"][_newick_property('v2')] = {"type": "string"}
+    current["properties"][_newick_property('v2')] = {"type": "string"}
+    _version2schema = compose_schema2version(v2=v2, current=current)
+    return _version2schema
 
+def schema_for_version(version):
+    return get_version2schema()[version]
 
 def validate(doc, version='current'):
-    schema = _version2schema[version]
-    jsonschema.validate(doc, schema)
-    s = doc["subtree"]
+    jsonschema.validate(doc, schema_for_version(version))
+    pname = _newick_property(version)
+    s = doc[pname]
     if not s.startswith('('):
         c = s if len(s) == 0 else s[0]
-        m = 'Expecting "subtree" field to be start with a ( found "{}"'.format(c)
+        m = 'Expecting "{}" field to be start with a ( found "{}"'.format(pname, c)
         raise jsonschema.ValidationError(m)
     return True

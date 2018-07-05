@@ -2,15 +2,26 @@
 # -*- coding: utf-8 -*-
 import copy
 import jsonschema
+from otwstest import compose_schema2version
 
-current = {
-    "$id": "https://tree.opentreeoflife.org/schema/current/tnrs/autocomplete_name.json",
-    "type": "array",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "items": {
-        "type": "object"
+_version2schema = None
+def get_version2schema():
+    global _version2schema
+    if _version2schema is not None:
+        return _version2schema
+    current = {
+        "$id": "https://tree.opentreeoflife.org/schema/current/tnrs/autocomplete_name.json",
+        "type": "array",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "items": {
+            "type": "object"
+        }
     }
-}
+    v2 = copy.deepcopy(current)
+    add_taxon_properties(current["items"], 'current')
+    add_taxon_properties(v2["items"], 'v2')
+    _version2schema = compose_schema2version(v2=v2, current=current)
+    return _version2schema
 
 
 def add_taxon_properties(par, version):
@@ -29,16 +40,10 @@ def add_taxon_properties(par, version):
     par["required"].sort()
 
 
-v2 = copy.deepcopy(current)
-add_taxon_properties(current["items"], 'current')
-add_taxon_properties(v2["items"], 'v2')
-v3 = copy.deepcopy(current)
-v2['$id'] = v2['$id'].replace('/current/', '/v3/')
-v3['$id'] = v3['$id'].replace('/current/', '/v3/')
-
-_version2schema = {'current': current, 'v2': v2, 'v3': v3}
+def schema_for_version(version):
+    return get_version2schema()[version]
 
 
 def validate(doc, version='current'):
-    jsonschema.validate(doc, _version2schema[version])
+    jsonschema.validate(doc, schema_for_version(version))
     return True

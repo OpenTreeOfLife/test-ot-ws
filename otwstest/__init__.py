@@ -9,6 +9,7 @@ import codecs
 import json
 import threading
 import re
+import copy
 
 try:
     from enum import Enum
@@ -33,6 +34,13 @@ else:
 TEST_QUEUE = Queue()
 ALL_PASSED = True
 ALL_PASSED_LOCK = threading.Lock()
+
+
+def compose_schema2version(v2, current):
+    v3 = copy.deepcopy(current)
+    v3['$id'] = v3['$id'].replace('/current/', '/v3/')
+    v2['$id'] = v2['$id'].replace('/current/', '/v3/')
+    return {'current': current, 'v2': v2, 'v3': v3}
 
 
 def _run_queued_test():

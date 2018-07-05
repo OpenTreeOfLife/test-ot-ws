@@ -3,6 +3,7 @@
 import copy
 import jsonschema
 from otwstest.schema.taxonomy.about import get_taxonomy_about_properties
+from otwstest import compose_schema2version
 
 def get_match_names_match_objects(version):
     return {
@@ -36,41 +37,49 @@ def get_match_names_results_objects(version):
                         "items": get_match_names_match_objects(version)}
         }
     }
-current = {
-    "$id": "https://tree.opentreeoflife.org/schema/current/tnrs/infer_context.json",
-    "type": "object",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "properties": {
-        "context": {"type": "string"},
-        "governing_code": {"type": "string"},
-        "includes_approximate_matches": {"type": "boolean"},
-        "includes_deprecated_taxa": {"type": "boolean"},
-        "includes_dubious_names": {"type": "boolean"},
-        "matched_name_ids": {"type": "array",
-                            "items": {"type": "string"}
-                           },
-        "results": {"type": "array", "items": get_match_names_results_objects('v2')},
-        "taxonomy": get_taxonomy_about_properties('v2'),
-        "unambiguous_name_ids": {"type": "array",
-                             "items": {"type": "string"}
-                             },
-        "unmatched_name_ids": {"type": "array",
-                             "items": {"type": "string"}
-                             }
-    },
-    "required": ["context", "governing_code", "includes_approximate_matches",
-                 "includes_deprecated_taxa", "matched_name_ids", "results",
-                 "taxonomy", "unambiguous_name_ids", "unmatched_name_ids"]
-}
 
-v2 = copy.deepcopy(current)
-v3 = copy.deepcopy(current)
-v2['$id'] = v2['$id'].replace('/current/', '/v3/')
-v3['$id'] = v3['$id'].replace('/current/', '/v3/')
+_version2schema = None
+def get_version2schema():
+    global _version2schema
+    if _version2schema is not None:
+        return _version2schema
+    current = {
+        "$id": "https://tree.opentreeoflife.org/schema/current/tnrs/infer_context.json",
+        "type": "object",
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+            "context": {"type": "string"},
+            "governing_code": {"type": "string"},
+            "includes_approximate_matches": {"type": "boolean"},
+            "includes_deprecated_taxa": {"type": "boolean"},
+            "includes_dubious_names": {"type": "boolean"},
+            "matched_name_ids": {"type": "array",
+                                "items": {"type": "string"}
+                               },
+            "results": {"type": "array", "items": get_match_names_results_objects('v2')},
+            "taxonomy": get_taxonomy_about_properties('v2'),
+            "unambiguous_name_ids": {"type": "array",
+                                 "items": {"type": "string"}
+                                 },
+            "unmatched_name_ids": {"type": "array",
+                                 "items": {"type": "string"}
+                                 }
+        },
+        "required": ["context", "governing_code", "includes_approximate_matches",
+                     "includes_deprecated_taxa", "matched_name_ids", "results",
+                     "taxonomy", "unambiguous_name_ids", "unmatched_name_ids"]
+    }
 
-_version2schema = {'current': current, 'v2': v2, 'v3': v3}
+    v2 = copy.deepcopy(current)
+    v2['$id'] = v2['$id'].replace('/current/', '/v3/')
+    _version2schema = compose_schema2version(v2=v2, current=current)
+    return _version2schema
+
+
+def schema_for_version(version):
+    return get_version2schema()[version]
 
 
 def validate(doc, version='current'):
-    jsonschema.validate(doc, _version2schema[version])
+    jsonschema.validate(doc, schema_for_version(version))
     return True

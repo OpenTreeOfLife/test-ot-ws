@@ -353,6 +353,7 @@ def _tstatus_to_str(status):
 
 
 SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
+DEF_SYST_CHOICE = 'production'
 ACTION_CHOICES = frozenset(['report', 'retry-failing', 'scan', 'test', ])
 SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT = False
@@ -360,6 +361,7 @@ TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
 SERVICE_CHOICES = ('taxonomy', 'tnrs')
 DEFAULT_NUM_THREADS = 8
+TEST_NAME_PREF = 'otwstest.'
 
 
 def debug(msg):
@@ -376,15 +378,11 @@ def read_test_list_from_store():
         return []
     return json.load(codecs.open(TEST_ADDR_LIST, 'rU', encoding='utf-8'))
 
-
-TEST_NAME_PREF = 'otwstest.'
-
-
 def get_full_test_list():
     x = read_test_list_from_store()
     if not x:
         # noinspection PyTypeChecker
-        x = [i[0] for i in scan_for_services(SERVICE_CHOICES)]
+        x = [i[0] for i in TestingConfig().scan_for_services(SERVICE_CHOICES)]
     lp = len(TEST_NAME_PREF)
     return [i[lp:] if i.startswith(TEST_NAME_PREF) else i for i in x]
 
@@ -406,26 +404,14 @@ def get_globbed_test_list():
     gtl.sort()
     return gtl
 
-
-def scan_for_services(services):
-    if not isinstance(services, list):
-        services = list(services)
-    services.sort()
-    addr = 'otwstest.'
-    file_func_pairs = []
-    # noinspection PyUnresolvedReferences
-    import otwstest
-    for s in services:
-        file_func_pairs.extend(_collect_file_func_pairs(otwstest.__dict__[s], addr + s))
-    return file_func_pairs
-
+EXPLICIT_API_VERSIONS = ('v2', 'v3')
 
 class TestingConfig(object):
     def __init__(self,
-                 system_to_test,
+                 system_to_test=DEF_SYST_CHOICE,
                  noise_level=2,
                  num_threads=DEFAULT_NUM_THREADS,
-                 api_versions='v3'):
+                 api_versions=EXPLICIT_API_VERSIONS):
         global DEBUG_OUTPUT
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
@@ -502,8 +488,21 @@ class TestingConfig(object):
                 if vers_outcome_pat.match(fn):
                     yield json.load(codecs.open(os.path.join(d, fn), 'rU', encoding='utf-8'))
 
+    def scan_for_services(self, services):
+        if not isinstance(services, list):
+            services = list(services)
+        services.sort()
+        addr = TEST_NAME_PREF
+        file_func_pairs = []
+        # noinspection PyUnresolvedReferences
+        import otwstest
+        for s in services:
+            x = _collect_file_func_pairs(otwstest.__dict__[s], addr + s, self._testing_versions)
+            file_func_pairs.extend(x)
+        return file_func_pairs
 
-def _collect_file_func_pairs(mod_obj, addr):
+
+def _collect_file_func_pairs(mod_obj, addr, version_set=None):
     ret = []
     if not mod_obj.__name__.startswith('otwstest'):
         return ret
@@ -515,12 +514,13 @@ def _collect_file_func_pairs(mod_obj, addr):
             try:
                 vspec = v.api_versions
                 for vstr in vspec:
-                    ret.append(('{}.{}'.format(extended, vstr), v))
+                    if (version_set is None) or (vstr in version_set):
+                        ret.append(('{}.{}'.format(extended, vstr), v))
             except Exception:
                 m = '{} matches pattern, but lacks api_versions attribute.\n'.format(extended)
                 sys.stderr.write(m)
         elif isinstance(v, types.ModuleType):
-            ret.extend(_collect_file_func_pairs(v, extended))
+            ret.extend(_collect_file_func_pairs(v, extended, version_set=version_set))
     return ret
 
 
@@ -571,7 +571,7 @@ def top_main(argv, deleg=None):
                    required=False,
                    help='Controls number of threads used to spawn calls')
     p.add_argument('--action', choices=ACTION_CHOICES, default='test')
-    p.add_argument('--system', choices=SYST_CHOICES, default='production')
+    p.add_argument('--system', choices=SYST_CHOICES, default=DEF_SYST_CHOICE)
     TEST_CHOICES = get_globbed_test_list()
     p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False)
     API_VERSION_CHOICES = ['v2', 'v3', 'all']
@@ -632,10 +632,7 @@ def top_main(argv, deleg=None):
         return tr
     parsed = p.parse_args(args=argv[1:])
     v = parsed.api_version
-    if v.lower() == 'all':
-        av = [i for i in API_VERSION_CHOICES if i != 'all']
-    else:
-        av = [v]
+    av = EXPLICIT_API_VERSIONS if v.lower() == 'all' else [v]
     tc = TestingConfig(system_to_test=parsed.system,
                        noise_level=parsed.noise,
                        num_threads=parsed.threads,
@@ -647,7 +644,7 @@ def top_main(argv, deleg=None):
             s = parsed.service
             if isinstance(s, str):
                 s = [s]
-            file_func_pairs = scan_for_services(list(s or SERVICE_CHOICES))
+            file_func_pairs = tc.scan_for_services(list(s or SERVICE_CHOICES))
             addr_to_skip = []
             if parsed.action == 'retry-failing':
                 for blob in tc.iter_previous():

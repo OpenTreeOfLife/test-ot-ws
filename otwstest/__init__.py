@@ -109,7 +109,10 @@ class TestStatus(Enum):
     SKIPPED = 4
     UNCAUGHT_EXCEPTION = 5  # error not caught by test function
 
-
+STATUS_REPORT_ORDER = ['SUCCESS', 'SKIPPED',  # not problematic
+                       'NOT_RECORDED', 'UNKNOWN', # report ignorance states, not real statuses
+                       'RUNNING', 'FAILED', 'ERROR', 'UNCAUGHT_EXCEPTION', # problematic
+                      ]
 STATUS_TO_SINGLE_LTR = {TestStatus.SUCCESS: '.',
                         TestStatus.ERROR: 'E',
                         TestStatus.FAILED: 'f',
@@ -350,7 +353,7 @@ def _tstatus_to_str(status):
 
 
 SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
-ACTION_CHOICES = frozenset(['retry-failing', 'scan', 'test', ])
+ACTION_CHOICES = frozenset(['report', 'retry-failing', 'scan', 'test', ])
 SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT = False
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
@@ -493,9 +496,10 @@ class TestingConfig(object):
     def iter_previous(self):
         if not os.path.exists(self._res_par):
             return
+        vers_outcome_pat = re.compile(r'^(v[0-9.]+)_outcome\.json$')
         for d, sub, file_list in os.walk(self._res_par):
             for fn in file_list:
-                if fn == 'outcome.json':
+                if vers_outcome_pat.match(fn):
                     yield json.load(codecs.open(os.path.join(d, fn), 'rU', encoding='utf-8'))
 
 
@@ -584,7 +588,7 @@ def top_main(argv, deleg=None):
         # sys.stderr.write('\na={}\n'.format(a))
         opts_to_values = {'--api-version': API_VERSION_CHOICES,
                           '--noise': [str(i) for i in range(6)],
-                          '--actions': ACTION_CHOICES,
+                          '--action': ACTION_CHOICES,
                           '--system': SYST_CHOICES,
                           '--test': TEST_CHOICES,
                           '--threads': [str(i) for i in range(20)],
@@ -649,9 +653,28 @@ def top_main(argv, deleg=None):
                 for blob in tc.iter_previous():
                     if blob.get('status', '').upper() == 'SUCCESS':
                         addr_to_skip.append(blob['test_addr'])
+            elif parsed.action == 'report':
+                addr_2_blob ={}
+                for blob in tc.iter_previous():
+                    addr_2_blob[blob['test_addr']] = blob
+                by_status = {}
+                for i in file_func_pairs:
+                    addr = i[0]
+                    blob = addr_2_blob.get(addr)
+                    if blob is None:
+                        by_status.setdefault('NOT_RECORDED', []).append(addr)
+                    else:
+                        by_status.setdefault(blob.get('status', 'UNKNOWN'), []).append(addr)
+                status_sorted = [i for i in STATUS_REPORT_ORDER if i in by_status]
+                for status in status_sorted:
+                    addr_list = by_status[status]
+                    for addr in addr_list:
+                        a = addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
+                        print('{} {}'.format(a, status))
+                return tr
             elif parsed.action == 'scan':
                 write_test_list_to_store([i[0] for i in file_func_pairs])
-                sys.exit(0)
+                return tr
             addr_to_skip = frozenset(addr_to_skip)
             file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
             if parsed.test is not None:

@@ -4,7 +4,7 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version
 
-def _newick_property(version):
+def newick_property(version):
     return 'subtree' if version == 'v2' else 'newick'
 
 _version2schema = None
@@ -19,11 +19,14 @@ def get_version2schema():
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
         },
-        "required": ["subtree"]
     }
     v2 = copy.deepcopy(current)
-    v2["properties"][_newick_property('v2')] = {"type": "string"}
-    current["properties"][_newick_property('v2')] = {"type": "string"}
+    n = newick_property('v2')
+    v2["properties"][n] = {"type": "string"}
+    v2["required"] = [n]
+    c = newick_property('current')
+    current["properties"][c] = {"type": "string"}
+    v2["required"] = [c]
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
 
@@ -32,7 +35,7 @@ def schema_for_version(version):
 
 def validate(doc, version='current'):
     jsonschema.validate(doc, schema_for_version(version))
-    pname = _newick_property(version)
+    pname = newick_property(version)
     s = doc[pname]
     if not s.startswith('('):
         c = s if len(s) == 0 else s[0]

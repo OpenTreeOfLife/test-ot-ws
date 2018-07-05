@@ -6,6 +6,7 @@
 import re
 from otwstest import is_str_type
 import otwstest.schema.tnrs as tnrs
+from otwstest.schema.taxonomy.taxon import get_ott_id_property
 
 
 def test_autocomplete_name(outcome):  # taxonomy-sensitive test
@@ -76,14 +77,16 @@ def test_match_names(outcome):  # taxonomy-sensitive test
     data = {"names": test_list}
     result = outcome.do_http_json(url, 'POST', data=data,
                                   validator=tnrs.match_names.validate)
-    mni = result[u'matched_name_ids']
+    mni = result[tnrs.match_names.matched_name_list_prop(outcome.api_version)]
     if set(test_list) != set(mni):
         errstr = "Failed to match, submitted: {}, returned {}"
         outcome.exit_test_with_failure(errstr.format(test_list, mni))
     match_list = result['results']
+    ott_id_prop = get_ott_id_property(outcome.api_version)
     for match in match_list:
         m = match['matches'][0]
-        if m.get(u'ot:ottId') not in test_ids:
+        t = m if outcome.api_version == 'v2' else m['taxon']
+        if t.get(ott_id_prop) not in test_ids:
             errstr = "bad match return {}, expected one of {}"
             outcome.exit_test_with_failure(errstr.format(m.get(u'ot:ottId'), test_ids))
         if m.get(u'matched_name') not in test_list:

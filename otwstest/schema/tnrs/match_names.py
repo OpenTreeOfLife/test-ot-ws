@@ -40,6 +40,11 @@ def get_match_names_results_objects(version):
         }
     }
 
+def matched_name_list_prop(version):
+    return 'matched_name_ids' if version == 'v2' else 'matched_names'
+
+def inc_suppressed_property(version):
+    return "includes_dubious_names" if version == 'v2' else 'includes_suppressed_names'
 
 _version2schema = None
 
@@ -57,26 +62,33 @@ def get_version2schema():
             "governing_code": {"type": "string"},
             "includes_approximate_matches": {"type": "boolean"},
             "includes_deprecated_taxa": {"type": "boolean"},
-            "includes_dubious_names": {"type": "boolean"},
-            "matched_name_ids": {"type": "array",
-                                 "items": {"type": "string"}
-                                 },
-            "results": {"type": "array", "items": get_match_names_results_objects('v2')},
-            "taxonomy": get_taxonomy_about_properties('v2'),
-            "unambiguous_name_ids": {"type": "array",
+            "includes_suppressed_names": {"type": "boolean"},
+            'matched_names': {"type": "array", "items": {"type": "string"}},
+            "results": {"type": "array", },
+            "unambiguous_names": {"type": "array",
                                      "items": {"type": "string"}
                                      },
-            "unmatched_name_ids": {"type": "array",
+            "unmatched_names": {"type": "array",
                                    "items": {"type": "string"}
                                    }
-        },
-        "required": ["context", "governing_code", "includes_approximate_matches",
-                     "includes_deprecated_taxa", "matched_name_ids", "results",
-                     "taxonomy", "unambiguous_name_ids", "unmatched_name_ids"]
+        }
     }
-
     v2 = copy.deepcopy(current)
-    v2['$id'] = v2['$id'].replace('/current/', '/v3/')
+    v2p = v2['properties']
+    for newer, older in [('unambiguous_names', 'unambiguous_name_ids'),
+                         ('unmatched_names', 'unmatched_name_ids'),
+                         ('matched_names', 'matched_name_ids'),
+                         ('includes_suppressed_names', 'includes_dubious_names'),
+                         ]:
+
+        v2p[older] = v2p[newer]
+        del v2p[newer]
+    v2['properties']['results']["items"] = get_match_names_results_objects('v2')
+    current['properties']['results']["items"] = get_match_names_results_objects('v3')
+    v2['properties']['taxonomy'] = get_taxonomy_about_properties('v2')
+    current['properties']['taxonomy'] = get_taxonomy_about_properties('v3')
+    v2['required'] = list(v2['properties'].keys())
+    current['required'] = list(current['properties'].keys())
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
 

@@ -4,6 +4,7 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version
 
+
 def taxon_obj_properties(version):
     p = {
         "flags": {
@@ -31,7 +32,9 @@ def taxon_obj_properties(version):
         p["is_suppressed"] = {"type": "boolean"}
     return p
 
+
 _version2schema = None
+
 
 def get_version2schema():
     global _version2schema
@@ -48,6 +51,7 @@ def get_version2schema():
     current['properties'] = taxon_obj_properties('v3')
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
+
 
 def schema_for_version(version):
     return get_version2schema()[version]

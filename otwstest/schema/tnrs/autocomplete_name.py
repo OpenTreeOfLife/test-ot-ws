@@ -5,6 +5,8 @@ import jsonschema
 from otwstest import compose_schema2version
 
 _version2schema = None
+
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:

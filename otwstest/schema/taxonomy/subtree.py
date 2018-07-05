@@ -4,10 +4,13 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version
 
+
 def newick_property(version):
     return 'subtree' if version == 'v2' else 'newick'
 
+
 _version2schema = None
+
 
 def get_version2schema():
     global _version2schema
@@ -30,8 +33,10 @@ def get_version2schema():
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
 
+
 def schema_for_version(version):
     return get_version2schema()[version]
+
 
 def validate(doc, version='current'):
     jsonschema.validate(doc, schema_for_version(version))

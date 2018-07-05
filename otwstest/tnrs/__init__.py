@@ -19,7 +19,10 @@ def test_autocomplete_name(outcome):  # taxonomy-sensitive test
         if not re.search(search_name, uname):
             errstr = 'unique_name: "{}" of taxon record does not contain search string "{}"'
             outcome.exit_test_with_failure(errstr.format(uname, search_name))
+
+
 test_autocomplete_name.api_versions = ('v2', 'v3')
+
 
 def test_contexts(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/contexts')
@@ -45,7 +48,10 @@ def test_contexts(outcome):  # taxonomy-sensitive test
     if 'Arachnids' not in result['ANIMALS']:
         errstr = 'Arachnides not in context ANIMALS.'
         outcome.exit_test_with_failure(errstr)
+
+
 test_contexts.api_versions = ('v2', 'v3')
+
 
 def test_infer_context(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/infer_context')
@@ -58,7 +64,10 @@ def test_infer_context(outcome):  # taxonomy-sensitive test
     if result['ambiguous_names']:
         errstr = 'Expected no ambiguous_names, but found {}.'.format(result['ambiguous_names'])
         outcome.exit_test_with_failure(errstr)
+
+
 test_infer_context.api_versions = ('v2', 'v3')
+
 
 def test_match_names(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/match_names')
@@ -80,4 +89,6 @@ def test_match_names(outcome):  # taxonomy-sensitive test
         if m.get(u'matched_name') not in test_list:
             errstr = "bad match return {}, expected one of {}"
             outcome.exit_test_with_failure(errstr.format(m.get(u'matched_name'), test_list))
+
+
 test_match_names.api_versions = ('v2', 'v3')

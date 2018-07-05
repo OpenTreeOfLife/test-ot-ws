@@ -4,7 +4,7 @@ from otwstest.schema.taxonomy.taxon import validate
 from otwstest import demand_property
 
 
-def test_simple(outcome):  #taxonomy-sensitive test
+def test_simple(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('taxonomy/taxon')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 901642}, validator=validate)
     expected = u'Alseuosmia banksii'
@@ -12,6 +12,8 @@ def test_simple(outcome):  #taxonomy-sensitive test
     if obs != expected:
         errstr = 'Expected taxon name "{}", but found in "{}"'.format(expected, obs)
         outcome.exit_test_with_failure(errstr)
+
+
 test_simple.api_versions = ('v2', 'v3')
 
 
@@ -23,7 +25,8 @@ def _check_ott_id(result, outcome, ott_id):
     else:
         NotImplementedError('v3')
 
-def test_include_children(outcome):  #taxonomy-sensitive test
+
+def test_include_children(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('taxonomy/taxon')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_children": "true"},
                                   validator=validate)
@@ -33,6 +36,8 @@ def test_include_children(outcome):  #taxonomy-sensitive test
     if expected_child not in map(lambda c: c[u'ot:ottId'], result[u'children']):
         errstr = 'Expected child {} not found in result'.format(expected_child)
         outcome.exit_test_with_failure(errstr)
+
+
 test_include_children.api_versions = ('v2', 'v3')
 
 
@@ -42,10 +47,12 @@ def test_include_lineage(outcome):
                                   validator=validate)
     _check_ott_id(result, outcome, 515698)
     demand_property('taxonomic_lineage', result, outcome, 'taxon')
+
+
 test_include_lineage.api_versions = ('v2', 'v3')
 
 
-def test_tax_sources(outcome):  #taxonomy-sensitive test
+def test_tax_sources(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('taxonomy/taxon')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 766177}, validator=validate)
     sources = demand_property('tax_sources', result, outcome, 'taxon')
@@ -53,9 +60,12 @@ def test_tax_sources(outcome):  #taxonomy-sensitive test
         if e not in sources:
             errstr = 'Expected "{}" not found in tax_sources'.format(e)
             outcome.exit_test_with_failure(errstr)
+
+
 test_tax_sources.api_versions = ('v2', 'v3')
 
-def test_terminal(outcome):  #taxonomy-sensitive test
+
+def test_terminal(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('taxonomy/taxon')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 1066581,
                                                      "list_terminal_descendants": True},
@@ -63,7 +73,8 @@ def test_terminal(outcome):  #taxonomy-sensitive test
     descendants = demand_property('terminal_descendants', result, outcome, 'taxon')
     if not {490099, 1066590}.issubset(set(descendants)):
         errstr = "Bos taurus (490099) and Bos primigenius (1066590) not returned as " \
-                "descendants of Bos (1066581)\n"
+                 "descendants of Bos (1066581)\n"
         outcome.exit_test_with_failure(errstr)
-test_terminal.api_versions = ('v2', 'v3')
 
+
+test_terminal.api_versions = ('v2', 'v3')

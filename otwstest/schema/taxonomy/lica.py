@@ -6,6 +6,8 @@ from .taxon import taxon_obj_properties
 from otwstest import compose_schema2version
 
 _version2schema = None
+
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:
@@ -31,6 +33,7 @@ def get_version2schema():
     current['properties']['mrca']['properties'] = taxon_obj_properties('v3')
     _version2schema = compose_schema2version(v2=v2, current=current)
     return _version2schema
+
 
 def schema_for_version(version):
     return get_version2schema()[version]

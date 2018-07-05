@@ -4,6 +4,7 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version
 
+
 def get_taxonomy_about_properties(version):
     if version == 'v2':
         return {
@@ -21,7 +22,10 @@ def get_taxonomy_about_properties(version):
         "weburl": {"type": "string"}
     }
 
+
 _version2schema = None
+
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:
@@ -36,8 +40,10 @@ def get_version2schema():
     _version2schema = compose_schema2version(v2=copy.deepcopy(current), current=current)
     return get_version2schema()
 
+
 def schema_for_version(version):
     return get_version2schema()[version]
+
 
 def validate(doc, version='current'):
     jsonschema.validate(doc, schema_for_version(version))

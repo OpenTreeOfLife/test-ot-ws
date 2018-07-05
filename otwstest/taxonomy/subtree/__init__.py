@@ -14,6 +14,8 @@ def test_simple(outcome):
         errstr = 'substring {} does not appear at root of tree:\n {}'
         errstr = errstr.format(ROOTTAXONSTR, tree)
         outcome.exit_test_with_failure(errstr)
+
+
 test_simple.api_versions = ('v2', 'v3')
 
 
@@ -31,4 +33,6 @@ def test_des_sp(outcome):
     if re.search(namecheck2, tree) is None:
         errstr = 'the expected fragment for terminal taxon "{}" does not appear in tree'
         outcome.exit_test_with_failure(errstr.format(DESCENDANTTAXONSTR))
+
+
 test_des_sp.api_versions = ('v2', 'v3')

@@ -5,6 +5,7 @@ import jsonschema
 from otwstest.schema.taxonomy.about import get_taxonomy_about_properties
 from otwstest import compose_schema2version
 
+
 def get_match_names_match_objects(version):
     return {
         "type": "object",
@@ -28,6 +29,7 @@ def get_match_names_match_objects(version):
         }
     }
 
+
 def get_match_names_results_objects(version):
     return {
         "type": "object",
@@ -38,7 +40,10 @@ def get_match_names_results_objects(version):
         }
     }
 
+
 _version2schema = None
+
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:
@@ -54,16 +59,16 @@ def get_version2schema():
             "includes_deprecated_taxa": {"type": "boolean"},
             "includes_dubious_names": {"type": "boolean"},
             "matched_name_ids": {"type": "array",
-                                "items": {"type": "string"}
-                               },
+                                 "items": {"type": "string"}
+                                 },
             "results": {"type": "array", "items": get_match_names_results_objects('v2')},
             "taxonomy": get_taxonomy_about_properties('v2'),
             "unambiguous_name_ids": {"type": "array",
-                                 "items": {"type": "string"}
-                                 },
+                                     "items": {"type": "string"}
+                                     },
             "unmatched_name_ids": {"type": "array",
-                                 "items": {"type": "string"}
-                                 }
+                                   "items": {"type": "string"}
+                                   }
         },
         "required": ["context", "governing_code", "includes_approximate_matches",
                      "includes_deprecated_taxa", "matched_name_ids", "results",

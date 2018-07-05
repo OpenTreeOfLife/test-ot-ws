@@ -109,10 +109,11 @@ class TestStatus(Enum):
     SKIPPED = 4
     UNCAUGHT_EXCEPTION = 5  # error not caught by test function
 
+
 STATUS_REPORT_ORDER = ['SUCCESS', 'SKIPPED',  # not problematic
-                       'NOT_RECORDED', 'UNKNOWN', # report ignorance states, not real statuses
-                       'RUNNING', 'FAILED', 'ERROR', 'UNCAUGHT_EXCEPTION', # problematic
-                      ]
+                       'NOT_RECORDED', 'UNKNOWN',  # report ignorance states, not real statuses
+                       'RUNNING', 'FAILED', 'ERROR', 'UNCAUGHT_EXCEPTION',  # problematic
+                       ]
 STATUS_TO_SINGLE_LTR = {TestStatus.SUCCESS: '.',
                         TestStatus.ERROR: 'E',
                         TestStatus.FAILED: 'f',
@@ -175,7 +176,9 @@ class TestResults(object):
             self._spawned_unfinished.add(tout)
         return tout
 
+
 _VERS_SPEC_PAT = re.compile(r'^v[0-9.]+$')
+
 
 class TestOutcome(object):
     def __init__(self, results_obj, test_addr, config):
@@ -185,7 +188,7 @@ class TestOutcome(object):
         self._results_collection = results_obj
         self._data = {}
         poss_v = test_addr.split('.')[-1]
-        assert(_VERS_SPEC_PAT.match(poss_v))
+        assert (_VERS_SPEC_PAT.match(poss_v))
         self.api_version = poss_v
 
     def store(self, key, value):
@@ -378,6 +381,7 @@ def read_test_list_from_store():
         return []
     return json.load(codecs.open(TEST_ADDR_LIST, 'rU', encoding='utf-8'))
 
+
 def get_full_test_list():
     x = read_test_list_from_store()
     if not x:
@@ -404,7 +408,9 @@ def get_globbed_test_list():
     gtl.sort()
     return gtl
 
+
 EXPLICIT_API_VERSIONS = ('v2', 'v3')
+
 
 class TestingConfig(object):
     def __init__(self,
@@ -547,6 +553,7 @@ def demand_property(prop, result, outcome, obj_type_name):
         outcome.exit_test_with_failure(errstr)
     return result.get(prop)
 
+
 def top_main(argv, deleg=None):
     import argparse
     description = "Tests of web services for Open Tree of Life project"
@@ -651,23 +658,7 @@ def top_main(argv, deleg=None):
                     if blob.get('status', '').upper() == 'SUCCESS':
                         addr_to_skip.append(blob['test_addr'])
             elif parsed.action == 'report':
-                addr_2_blob ={}
-                for blob in tc.iter_previous():
-                    addr_2_blob[blob['test_addr']] = blob
-                by_status = {}
-                for i in file_func_pairs:
-                    addr = i[0]
-                    blob = addr_2_blob.get(addr)
-                    if blob is None:
-                        by_status.setdefault('NOT_RECORDED', []).append(addr)
-                    else:
-                        by_status.setdefault(blob.get('status', 'UNKNOWN'), []).append(addr)
-                status_sorted = [i for i in STATUS_REPORT_ORDER if i in by_status]
-                for status in status_sorted:
-                    addr_list = by_status[status]
-                    for addr in addr_list:
-                        a = addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
-                        print('{} {}'.format(a, status))
+                _do_report_action(tc, file_func_pairs)
                 return tr
             elif parsed.action == 'scan':
                 write_test_list_to_store([i[0] for i in file_func_pairs])
@@ -686,6 +677,27 @@ def top_main(argv, deleg=None):
         return tr
     finally:
         tc.flush(tr)
+
+
+def _do_report_action(test_config, file_func_pairs):
+    addr_2_blob = {}
+    for blob in test_config.iter_previous():
+        addr_2_blob[blob['test_addr']] = blob
+    by_status = {}
+    for i in file_func_pairs:
+        addr = i[0]
+        blob = addr_2_blob.get(addr)
+        if blob is None:
+            by_status.setdefault('NOT_RECORDED', []).append(addr)
+        else:
+            by_status.setdefault(blob.get('status', 'UNKNOWN'), []).append(addr)
+    status_sorted = [i for i in STATUS_REPORT_ORDER if i in by_status]
+    for status in status_sorted:
+        addr_list = by_status[status]
+        for addr in addr_list:
+            a = addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
+            print('{} {}'.format(a, status))
+    print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 
 from . import taxonomy, tnrs, schema

@@ -7,6 +7,9 @@ from otwstest import compose_schema2version
 _version2schema = None
 
 
+def suppressed_property(version):
+    return "is_dubious" if version == 'v2' else 'is_suppressed'
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:
@@ -28,7 +31,7 @@ def get_version2schema():
 
 def add_taxon_properties(par, version):
     p = {
-        "is_dubious": {"type": "boolean"},
+        suppressed_property(version): {"type": "boolean"},
         "is_higher": {"type": "boolean"},
         "unique_name": {"type": "string"},
     }

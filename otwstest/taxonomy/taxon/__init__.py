@@ -6,10 +6,11 @@ from otwstest import demand_property
 def taxon_url_frag(outcome):
     return 'taxonomy/taxon' if outcome.api_version == 'v2' else 'taxonomy/taxon_info'
 
-
 def term_des_arg(outcome):
     return '{}_terminal_descendants'.format('list' if outcome.api_version == 'v2' else 'include')
 
+def lineage_prop(outcome):
+    return 'taxonomic_lineage' if outcome.api_version == 'v2' else 'lineage'
 
 def test_simple(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
@@ -26,9 +27,9 @@ test_simple.api_versions = ('v2', 'v3')
 
 
 def _check_ott_id(result, outcome, ott_id):
-    prop = get_ott_name_property(outcome.api_version)
+    prop = get_ott_id_property(outcome.api_version)
     if result[prop] != ott_id:
-        errstr = 'Incorrect ott_id in returned taxon {}', format(result[u'ot:ottId'])
+        errstr = 'Incorrect ott_id in returned taxon {}', format(result[prop])
         outcome.exit_test_with_failure(errstr)
 
 
@@ -39,7 +40,8 @@ def test_include_children(outcome):  # taxonomy-sensitive test
     _check_ott_id(result, outcome, 515698, )
     demand_property(u'children', result, outcome, 'taxon')
     expected_child = 503056
-    if expected_child not in map(lambda c: c[u'ot:ottId'], result[u'children']):
+    prop = get_ott_id_property(outcome.api_version)
+    if expected_child not in map(lambda c: c[prop], result[u'children']):
         errstr = 'Expected child {} not found in result'.format(expected_child)
         outcome.exit_test_with_failure(errstr)
 
@@ -52,7 +54,7 @@ def test_include_lineage(outcome):
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_lineage": "true"},
                                   validator=validate)
     _check_ott_id(result, outcome, 515698)
-    demand_property('taxonomic_lineage', result, outcome, 'taxon')
+    demand_property(lineage_prop(outcome), result, outcome, 'taxon')
 
 
 test_include_lineage.api_versions = ('v2', 'v3')

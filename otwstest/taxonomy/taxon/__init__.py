@@ -1,14 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from otwstest.schema.taxonomy.taxon import validate
+from otwstest.schema.taxonomy.taxon import validate, get_ott_id_property, get_ott_name_property
 from otwstest import demand_property
+
+def taxon_url_frag(outcome):
+    return 'taxonomy/taxon' if outcome.api_version == 'v2' else 'taxonomy/taxon_info'
+
+
+def term_des_arg(outcome):
+    return '{}_terminal_descendants'.format('list' if outcome.api_version == 'v2' else 'include')
 
 
 def test_simple(outcome):  # taxonomy-sensitive test
-    url = outcome.make_url('taxonomy/taxon')
+    url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 901642}, validator=validate)
     expected = u'Alseuosmia banksii'
-    obs = result[u'ot:ottTaxonName']
+    prop = get_ott_name_property(outcome.api_version)
+    obs = result[prop]
     if obs != expected:
         errstr = 'Expected taxon name "{}", but found in "{}"'.format(expected, obs)
         outcome.exit_test_with_failure(errstr)
@@ -18,16 +26,14 @@ test_simple.api_versions = ('v2', 'v3')
 
 
 def _check_ott_id(result, outcome, ott_id):
-    if outcome.api_version == 'v2':
-        if result[u'ot:ottId'] != ott_id:
-            errstr = 'Incorrect ott_id in returned taxon {}', format(result[u'ot:ottId'])
-            outcome.exit_test_with_failure(errstr)
-    else:
-        NotImplementedError('v3')
+    prop = get_ott_name_property(outcome.api_version)
+    if result[prop] != ott_id:
+        errstr = 'Incorrect ott_id in returned taxon {}', format(result[u'ot:ottId'])
+        outcome.exit_test_with_failure(errstr)
 
 
 def test_include_children(outcome):  # taxonomy-sensitive test
-    url = outcome.make_url('taxonomy/taxon')
+    url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_children": "true"},
                                   validator=validate)
     _check_ott_id(result, outcome, 515698, )
@@ -42,7 +48,7 @@ test_include_children.api_versions = ('v2', 'v3')
 
 
 def test_include_lineage(outcome):
-    url = outcome.make_url('taxonomy/taxon')
+    url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_lineage": "true"},
                                   validator=validate)
     _check_ott_id(result, outcome, 515698)
@@ -53,7 +59,7 @@ test_include_lineage.api_versions = ('v2', 'v3')
 
 
 def test_tax_sources(outcome):  # taxonomy-sensitive test
-    url = outcome.make_url('taxonomy/taxon')
+    url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 766177}, validator=validate)
     sources = demand_property('tax_sources', result, outcome, 'taxon')
     for e in ['ncbi:58228', 'gbif:3189571', 'irmng:11346207']:
@@ -66,9 +72,9 @@ test_tax_sources.api_versions = ('v2', 'v3')
 
 
 def test_terminal(outcome):  # taxonomy-sensitive test
-    url = outcome.make_url('taxonomy/taxon')
+    url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 1066581,
-                                                     "list_terminal_descendants": True},
+                                                     term_des_arg(outcome): True},
                                   validator=validate)
     descendants = demand_property('terminal_descendants', result, outcome, 'taxon')
     if not {490099, 1066590}.issubset(set(descendants)):

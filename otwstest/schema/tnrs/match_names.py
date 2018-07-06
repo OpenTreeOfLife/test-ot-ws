@@ -40,11 +40,14 @@ def get_match_names_results_objects(version):
         }
     }
 
+
 def matched_name_list_prop(version):
     return 'matched_name_ids' if version == 'v2' else 'matched_names'
 
+
 def inc_suppressed_property(version):
     return "includes_dubious_names" if version == 'v2' else 'includes_suppressed_names'
+
 
 _version2schema = None
 
@@ -66,11 +69,11 @@ def get_version2schema():
             'matched_names': {"type": "array", "items": {"type": "string"}},
             "results": {"type": "array", },
             "unambiguous_names": {"type": "array",
-                                     "items": {"type": "string"}
-                                     },
+                                  "items": {"type": "string"}
+                                  },
             "unmatched_names": {"type": "array",
-                                   "items": {"type": "string"}
-                                   }
+                                "items": {"type": "string"}
+                                }
         }
     }
     v2 = copy.deepcopy(current)
@@ -80,7 +83,6 @@ def get_version2schema():
                          ('matched_names', 'matched_name_ids'),
                          ('includes_suppressed_names', 'includes_dubious_names'),
                          ]:
-
         v2p[older] = v2p[newer]
         del v2p[newer]
     v2['properties']['results']["items"] = get_match_names_results_objects('v2')

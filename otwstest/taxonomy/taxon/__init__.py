@@ -3,14 +3,18 @@
 from otwstest.schema.taxonomy.taxon import validate, get_ott_id_property, get_ott_name_property
 from otwstest import demand_property
 
+
 def taxon_url_frag(outcome):
     return 'taxonomy/taxon' if outcome.api_version == 'v2' else 'taxonomy/taxon_info'
+
 
 def term_des_arg(outcome):
     return '{}_terminal_descendants'.format('list' if outcome.api_version == 'v2' else 'include')
 
+
 def lineage_prop(outcome):
     return 'taxonomic_lineage' if outcome.api_version == 'v2' else 'lineage'
+
 
 def test_simple(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))

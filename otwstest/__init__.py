@@ -18,6 +18,7 @@ try:
 except ImportError:
     # noinspection PyPackageRequirements,PyUnresolvedReferences
     from enum import Enum
+    # noinspection PyCompatibility,PyUnresolvedReferences
     from Queue import Queue
 import requests
 import jsonschema

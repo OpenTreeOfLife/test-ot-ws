@@ -117,5 +117,5 @@ def test_match_hyphenated(outcome):  # taxonomy-sensitive test
             errstr = "bad match return {}, expected one of {}"
             outcome.exit_test_with_failure(errstr.format(m.get(u'ot:ottId'), test_ids))
 
-test_match_hyphenated.api_versions = ('v2', 'v3')
 
+test_match_hyphenated.api_versions = ('v2', 'v3')

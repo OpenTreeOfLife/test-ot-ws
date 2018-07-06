@@ -4,11 +4,14 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version
 
+
 def get_ott_id_property(version):
     return "ot:ottId" if version == 'v2' else 'ott_id'
 
+
 def get_ott_name_property(version):
     return "ot:ottTaxonName" if version == 'v2' else 'name'
+
 
 def taxon_obj_properties(version):
     p = {
@@ -25,10 +28,10 @@ def taxon_obj_properties(version):
             "type": "array",
             "items": {"type": "string"}
         },
-        "unique_name": {"type": "string"}
+        "unique_name": {"type": "string"},
+        get_ott_id_property(version): {"type": "integer"},
+        get_ott_name_property(version): {"type": "string"}
     }
-    p[get_ott_id_property(version)] = {"type": "integer"}
-    p[get_ott_name_property(version)] = {"type": "string"}
     if version == 'v2':
         p["node_id"] = {"type": "integer"}
     else:

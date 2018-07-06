@@ -10,6 +10,7 @@ _version2schema = None
 def suppressed_property(version):
     return "is_dubious" if version == 'v2' else 'is_suppressed'
 
+
 def get_version2schema():
     global _version2schema
     if _version2schema is not None:

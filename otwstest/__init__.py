@@ -17,8 +17,8 @@ try:
     from queue import Queue
 except ImportError:
     # noinspection PyPackageRequirements,PyUnresolvedReferences
-    from enum34 import Enum
-    from threading import Queue
+    from enum import Enum
+    from Queue import Queue
 import requests
 import jsonschema
 

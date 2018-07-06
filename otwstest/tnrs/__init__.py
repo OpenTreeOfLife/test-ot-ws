@@ -95,3 +95,27 @@ def test_match_names(outcome):  # taxonomy-sensitive test
 
 
 test_match_names.api_versions = ('v2', 'v3')
+
+
+def test_match_hyphenated(outcome):  # taxonomy-sensitive test
+    url = outcome.make_url('tnrs/match_names')
+    test_list = ["Polygonia c-album"]
+    test_ids = [522165]
+    data = {"names": test_list}
+    result = outcome.do_http_json(url, 'POST', data=data,
+                                  validator=tnrs.match_names.validate)
+    mni = result[tnrs.match_names.matched_name_list_prop(outcome.api_version)]
+    if set(test_list) != set(mni):
+        errstr = "Failed to match, submitted: {}, returned {}"
+        outcome.exit_test_with_failure(errstr.format(test_list, mni))
+    match_list = result['results']
+    ott_id_prop = get_ott_id_property(outcome.api_version)
+    for match in match_list:
+        m = match['matches'][0]
+        t = m if outcome.api_version == 'v2' else m['taxon']
+        if t.get(ott_id_prop) not in test_ids:
+            errstr = "bad match return {}, expected one of {}"
+            outcome.exit_test_with_failure(errstr.format(m.get(u'ot:ottId'), test_ids))
+
+test_match_hyphenated.api_versions = ('v2', 'v3')
+

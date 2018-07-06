@@ -143,11 +143,11 @@ class TestResults(object):
 
     def flush(self, context):
         if context.noise_level >= 1 and len(self._run) > 0:
-            m = '\n{} test(s) run. {} succeeded. {} failed. {} errored. {} skipped. ' \
+            m = '\n{} test(s) run. {} succeeded. {} skipped. {} failed. {} errored. ' \
                 '{} raised exceptions.   {}/{} success rate.'
             with TestResults._lock:
-                m = m.format(len(self._run), len(self._succeeded), len(self._failed),
-                             len(self._errored), len(self._skipped), len(self._exceptions_uncaught),
+                m = m.format(len(self._run), len(self._succeeded), len(self._skipped),
+                             len(self._failed), len(self._errored), len(self._exceptions_uncaught),
                              len(self._succeeded), len(self._run) - len(self._skipped))
             context.status_message(1, m)
 

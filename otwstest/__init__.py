@@ -11,6 +11,7 @@ import threading
 import re
 import copy
 
+__version__ = '0.1.0'
 try:
     from enum import Enum
     # noinspection PyCompatibility
@@ -377,7 +378,15 @@ def write_test_list_to_store(iterable):
     write_as_json(iterable, TEST_ADDR_LIST, indent=2)
 
 
+def default_fill_cache_with_scan_for_tests():
+    tc = TestingConfig()
+    file_func_pairs = tc.scan_for_services(list(SERVICE_CHOICES))
+    write_test_list_to_store([i[0] for i in file_func_pairs])
+
+
 def read_test_list_from_store():
+    if not os.path.exists(TEST_ADDR_LIST):
+        default_fill_cache_with_scan_for_tests()
     if not os.path.exists(TEST_ADDR_LIST):
         return []
     return json.load(codecs.open(TEST_ADDR_LIST, 'rU', encoding='utf-8'))
@@ -567,7 +576,7 @@ def demand_property(prop, result, outcome, obj_type_name):
     return result.get(prop)
 
 
-def top_main(argv, deleg=None):
+def top_main(argv, deleg=None, nested=False):
     import argparse
     description = "Tests of web services for Open Tree of Life project"
     if deleg is not None:
@@ -577,6 +586,10 @@ def top_main(argv, deleg=None):
                    action="store_true",
                    default=False,
                    help=argparse.SUPPRESS)
+    p.add_argument("--version",
+                   action="store_true",
+                   default=False,
+                   help='print version of the testing software and exit')
     p.add_argument("--noise",
                    default=3,
                    type=int,
@@ -590,17 +603,32 @@ def top_main(argv, deleg=None):
                    type=int,
                    required=False,
                    help='Controls number of threads used to spawn calls')
-    p.add_argument('--action', choices=ACTION_CHOICES, default='test')
-    p.add_argument('--system', choices=SYST_CHOICES, default=DEF_SYST_CHOICE)
+    p.add_argument('--action', choices=ACTION_CHOICES, default='test',
+                   help='controls the main action. Default is test to run tests. "retry-failing" '
+                        'runs only tests that have previously failed. "report" describes that '
+                        'last run state of each test without re-executing any tests. "scan" is '
+                        'only used by developers, it records the list of available tests for '
+                        'better tab-completion.')
+    p.add_argument('--system', choices=SYST_CHOICES, default=DEF_SYST_CHOICE,
+                   help='Directs the tests to be run again the main (production) servers by '
+                        'default. "dev" runs the test against the development servers, and '
+                        '"local" tells the tests to run against the default endpoints used '
+                        'by developers of Open Tree of Life when testing on their own '
+                        'computers.')
     TEST_CHOICES = get_globbed_test_list()
-    p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False)
+    p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False,
+                   help='Specifies a prefix of a test name. All test names that start with that '
+                        'prefix followed by a . will be matched and run')
     API_VERSION_CHOICES = ['v2', 'v3', 'all']
-    p.add_argument('--api-version', choices=API_VERSION_CHOICES, default='all', required=False)
+    p.add_argument('--api-version', choices=API_VERSION_CHOICES, default='all', required=False,
+                   help='specifies which version of the API to test.')
 
     if deleg is None:
         p.add_argument('service', nargs='?', choices=SERVICE_CHOICES)
     tr = TestResults()
     if "--show-completions" in argv:
+        DASHED_ARGUMENTLESS = ['--version', '--help']
+        ARGUMENTLESS = DASHED_ARGUMENTLESS + list(SERVICE_CHOICES)
         try:
             a = argv[3:]
         except Exception:
@@ -623,6 +651,9 @@ def top_main(argv, deleg=None):
                 for key, vals in opts_to_values.items():
                     if key.startswith(last) and key not in a:
                         comp_list.extend(['{}={}'.format(key, i) for i in vals])
+                for s in DASHED_ARGUMENTLESS:
+                    if s.startswith(last):
+                        comp_list.append(s)
             elif last == '=':
                 # = sign separating an option from its value.
                 if len(a) > 1:
@@ -632,7 +663,7 @@ def top_main(argv, deleg=None):
                 if _aug_comp_list_eq_started(opts_to_values, a[-3], last, comp_list):
                     ov_end = True
             else:
-                for s in SERVICE_CHOICES:
+                for s in ARGUMENTLESS:
                     if s.startswith(last):
                         if s == last:
                             ov_end = True
@@ -640,7 +671,7 @@ def top_main(argv, deleg=None):
                         else:
                             comp_list.append(s)
         if ov_end:
-            for s in SERVICE_CHOICES:
+            for s in ARGUMENTLESS:
                 if s not in a:
                     comp_list.append(s)
             for o in opts_to_values.keys():
@@ -650,7 +681,17 @@ def top_main(argv, deleg=None):
         sys.stdout.write('{}\n'.format(' '.join(comp_list)))
         # sys.stderr.write('\nfinal return: {}\n'.format(' '.join(comp_list)))
         return tr
-    parsed = p.parse_args(args=argv[1:])
+    try:
+        parsed = p.parse_args(args=argv[1:])
+    except SystemExit as exc:
+        if (not nested) and not ('-h' in argv or '--help' in argv):
+            default_fill_cache_with_scan_for_tests()
+            return top_main(argv, deleg=deleg, nested=True)
+        else:
+            raise
+    if parsed.version:
+        print('{} using otwstest version {}'.format(SCRIPT_NAME, __version__))
+        return tr
     v = parsed.api_version
     av = EXPLICIT_API_VERSIONS if v.lower() == 'all' else [v]
     tc = TestingConfig(system_to_test=parsed.system,

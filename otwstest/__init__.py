@@ -238,7 +238,7 @@ class TestOutcome(object):
         elif self.status != TestStatus.SUCCESS:
             m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('brief', ''))
         if m:
-            config.status_message(3, '{}: {}\n'.format(self.test_addr, m))
+            config.status_message(3, '{}: {}\n'.format(clean_test_addr(self.test_addr), m))
 
     def full_diagnosis(self, config):
         m = None
@@ -248,7 +248,7 @@ class TestOutcome(object):
         elif self.status != TestStatus.SUCCESS:
             m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('detailed', ''))
         if m:
-            config.status_message(4, '{}: {}\n'.format(self.test_addr, m))
+            config.status_message(4, '{}: {}\n'.format(clean_test_addr(self.test_addr), m))
 
     def serialize(self, config):
         results_dir = config.get_results_dir(self.test_addr)
@@ -373,10 +373,10 @@ def debug(msg):
     if DEBUG_OUTPUT:
         sys.stderr.write('{} debug: {}\n'.format(SCRIPT_NAME, msg))
 
+
 def warn(msg):
     if not SILENT_MODE:
         sys.stderr.write('{} warn: {}\n'.format(SCRIPT_NAME, msg))
-
 
 
 def write_test_list_to_store(iterable):
@@ -427,6 +427,10 @@ def get_globbed_test_list():
 EXPLICIT_API_VERSIONS = ('v2', 'v3')
 
 
+def clean_test_addr(addr):
+    return addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
+
+
 class TestingConfig(object):
     def __init__(self,
                  system_to_test=DEF_SYST_CHOICE,
@@ -452,9 +456,7 @@ class TestingConfig(object):
         return api_version in self._testing_versions
 
     def get_results_dir(self, addr):
-        cull_pref = 'otwstest.'
-        if addr.startswith(cull_pref):
-            addr = addr[len(cull_pref):]
+        addr = clean_test_addr(addr)
         addr = '/'.join(addr.split('.')[:-1])
         res_dir = os.path.join(self._res_par, addr)
         if not os.path.exists(res_dir):
@@ -744,6 +746,7 @@ def top_main(argv, deleg=None, nested=False):
     finally:
         tc.flush(tr)
 
+
 def _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
     addr_2_blob = {}
     for blob in test_config.iter_previous():
@@ -751,6 +754,7 @@ def _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
     for i in file_func_pairs:
         addr = i[0]
         yield addr, addr_2_blob.get(addr)
+
 
 def escape_dq(s):
     if not is_str_type(s):
@@ -767,6 +771,7 @@ def write_test_as_curl(out, blob):
     for cblob in blob['calls']:
         write_call_as_curl(out, cblob)
 
+
 def write_call_as_curl(out, cblob):
     v = cblob['verb']
     headers = cblob['headers']
@@ -781,12 +786,14 @@ def write_call_as_curl(out, cblob):
     dargs = " --data '{}'".format(json.dumps(data)) if data else ''
     out.write('curl {v} {h} {u}{d}\n'.format(v=varg, u=url, h=hargs, d=dargs))
 
+
 def _do_curl_action(test_config, file_func_pairs):
     for addr, blob in _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
         if blob is None:
             warn('Test "{}" must be run before curl version can be generated.'.format(addr))
         else:
             write_test_as_curl(sys.stdout, blob)
+
 
 def _do_report_action(test_config, file_func_pairs):
     by_status = {}

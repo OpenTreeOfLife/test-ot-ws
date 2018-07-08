@@ -7,26 +7,36 @@ from otwstest import compose_schema2version
 
 
 def get_match_names_match_objects(version):
+    p = {
+        "is_approximate_match": {"type": "boolean"},
+        "is_synonym": {"type": "boolean"},
+        "matched_name": {"type": "string"},
+        "nomenclature_code": {"type": "string"},
+        "score": {"type": "number"},
+        "search_string": {"type": "string"},
+    }
+    if version == 'v2':
+        p["is_dubious"] = {"type": "boolean"}
+        p["is_deprecated"] = {"type": "boolean"}
+        p["matched_node_id"] = {"type": "integer"}
+        p["ot:ottId"] = {"type": "integer"}
+        p["ot:ottTaxonName"] = {"type": "string"}
+        t = p
+    else:
+        t = {
+            "is_suppressed": {"type": "boolean"},
+            "name": {"type": "string"},
+            "ott_id": {"type": "integer"},
+        }
+        p['taxon'] = t
+    t["flags"] = {"type": "array", "items": {"type": "string"}}
+    t["tax_sources"] = {"type": "array", "items": {"type": "string"}}
+    t["unique_name"] = {"type": "string"}
+    t["rank"] = {"type": "string"}
+    t["synonyms"] = {"type": "array", "items": {"type": "string"}}
     return {
         "type": "object",
-        "properties": {
-            "flags": {"type": "array", "items": {"type": "string"}},
-            "is_approximate_match": {"type": "boolean"},
-            "is_deprecated": {"type": "boolean"},
-            "is_dubious": {"type": "boolean"},
-            "is_synonym": {"type": "boolean"},
-            "matched_name": {"type": "string"},
-            "matched_node_id": {"type": "integer"},
-            "nomenclature_code": {"type": "string"},
-            "ot:ottId": {"type": "integer"},
-            "ot:ottTaxonName": {"type": "string"},
-            "rank": {"type": "string"},
-            "score": {"type": "number"},
-            "search_string": {"type": "string"},
-            "synonyms": {"type": "array", "items": {"type": "string"}},
-            "tax_sources": {"type": "array", "items": {"type": "string"}},
-            "unique_name": {"type": "string"},
-        }
+        "properties": p
     }
 
 
@@ -85,7 +95,9 @@ def get_version2schema():
                          ]:
         v2p[older] = v2p[newer]
         del v2p[newer]
+    # noinspection PyTypeChecker
     v2['properties']['results']["items"] = get_match_names_results_objects('v2')
+    # noinspection PyTypeChecker
     current['properties']['results']["items"] = get_match_names_results_objects('v3')
     v2['properties']['taxonomy'] = get_taxonomy_about_properties('v2')
     current['properties']['taxonomy'] = get_taxonomy_about_properties('v3')

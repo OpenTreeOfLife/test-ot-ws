@@ -359,9 +359,9 @@ def _tstatus_to_str(status):
 
 SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
 DEF_SYST_CHOICE = 'production'
-ACTION_CHOICES = frozenset(['report', 'retry-failing', 'scan', 'test', ])
+ACTION_CHOICES = frozenset(['curl', 'report', 'retry-failing', 'scan', 'test', ])
 SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
-DEBUG_OUTPUT = False
+DEBUG_OUTPUT, SILENT_MODE = False, False
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
 SERVICE_CHOICES = ('taxonomy', 'tnrs')
@@ -372,6 +372,11 @@ TEST_NAME_PREF = 'otwstest.'
 def debug(msg):
     if DEBUG_OUTPUT:
         sys.stderr.write('{} debug: {}\n'.format(SCRIPT_NAME, msg))
+
+def warn(msg):
+    if not SILENT_MODE:
+        sys.stderr.write('{} warn: {}\n'.format(SCRIPT_NAME, msg))
+
 
 
 def write_test_list_to_store(iterable):
@@ -428,12 +433,14 @@ class TestingConfig(object):
                  noise_level=2,
                  num_threads=DEFAULT_NUM_THREADS,
                  api_versions=EXPLICIT_API_VERSIONS):
-        global DEBUG_OUTPUT
+        global DEBUG_OUTPUT, SILENT_MODE
         self.system_to_test = system_to_test.lower()
         assert self.system_to_test in SYST_CHOICES
         self.noise_level = noise_level
         if self.noise_level >= 5:
             DEBUG_OUTPUT = True
+        elif self.noise_level == 0:
+            SILENT_MODE = True
         self.needs_newline = False
         self.num_threads = num_threads
         self._res_par = os.path.join(TEST_CACHE_PAR, system_to_test)
@@ -604,11 +611,12 @@ def top_main(argv, deleg=None, nested=False):
                    required=False,
                    help='Controls number of threads used to spawn calls')
     p.add_argument('--action', choices=ACTION_CHOICES, default='test',
-                   help='controls the main action. Default is test to run tests. "retry-failing" '
+                   help='controls the main action. Default is "test" to run tests. "retry-failing" '
                         'runs only tests that have previously failed. "report" describes that '
                         'last run state of each test without re-executing any tests. "scan" is '
                         'only used by developers, it records the list of available tests for '
-                        'better tab-completion.')
+                        'better tab-completion. "curl" writes the curl version of a test\'s call '
+                        'to standard output if the test has been run at least once.')
     p.add_argument('--system', choices=SYST_CHOICES, default=DEF_SYST_CHOICE,
                    help='Directs the tests to be run again the main (production) servers by '
                         'default. "dev" runs the test against the development servers, and '
@@ -683,7 +691,7 @@ def top_main(argv, deleg=None, nested=False):
         return tr
     try:
         parsed = p.parse_args(args=argv[1:])
-    except SystemExit as exc:
+    except SystemExit:
         if (not nested) and not ('-h' in argv or '--help' in argv):
             default_fill_cache_with_scan_for_tests()
             return top_main(argv, deleg=deleg, nested=True)
@@ -711,14 +719,12 @@ def top_main(argv, deleg=None, nested=False):
                 for blob in tc.iter_previous():
                     if blob.get('status', '').upper() == 'SUCCESS':
                         addr_to_skip.append(blob['test_addr'])
-            elif parsed.action == 'report':
-                _do_report_action(tc, file_func_pairs)
-                return tr
             elif parsed.action == 'scan':
                 write_test_list_to_store([i[0] for i in file_func_pairs])
                 return tr
-            addr_to_skip = frozenset(addr_to_skip)
-            file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
+            else:
+                addr_to_skip = frozenset(addr_to_skip)
+                file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
             if parsed.test is not None:
                 test_glob = '{}{}'.format(TEST_NAME_PREF, parsed.test)
                 try:
@@ -727,20 +733,64 @@ def top_main(argv, deleg=None, nested=False):
                     pass
                 if len(file_func_pairs) == 0:
                     sys.exit('No tests matched --test="{}"'.format(parsed.test))
+            if parsed.action == 'report':
+                _do_report_action(tc, file_func_pairs)
+                return tr
+            elif parsed.action == 'curl':
+                _do_curl_action(tc, file_func_pairs)
+                return tr
             run_tests(tc, file_func_pairs, tr)
         return tr
     finally:
         tc.flush(tr)
 
-
-def _do_report_action(test_config, file_func_pairs):
+def _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
     addr_2_blob = {}
     for blob in test_config.iter_previous():
         addr_2_blob[blob['test_addr']] = blob
-    by_status = {}
     for i in file_func_pairs:
         addr = i[0]
-        blob = addr_2_blob.get(addr)
+        yield addr, addr_2_blob.get(addr)
+
+def escape_dq(s):
+    if not is_str_type(s):
+        if isinstance(s, bool):
+            return 'true' if s else 'false'
+        return s
+    if '"' in s:
+        ss = s.split('"')
+        return '"{}"'.format('\\"'.join(ss))
+    return '"{}"'.format(s)
+
+
+def write_test_as_curl(out, blob):
+    for cblob in blob['calls']:
+        write_call_as_curl(out, cblob)
+
+def write_call_as_curl(out, cblob):
+    v = cblob['verb']
+    headers = cblob['headers']
+    data = cblob['data']
+    url = cblob['url']
+    varg = '' if v == 'GET' else '-X {} '.format(v)
+    if headers:
+        hal = ['-H {}:{}'.format(escape_dq(k), escape_dq(v)) for k, v in headers.items()]
+        hargs = ' '.join(hal)
+    else:
+        hargs = ''
+    dargs = " --data '{}'".format(json.dumps(data)) if data else ''
+    out.write('curl {v} {h} {u}{d}\n'.format(v=varg, u=url, h=hargs, d=dargs))
+
+def _do_curl_action(test_config, file_func_pairs):
+    for addr, blob in _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
+        if blob is None:
+            warn('Test "{}" must be run before curl version can be generated.'.format(addr))
+        else:
+            write_test_as_curl(sys.stdout, blob)
+
+def _do_report_action(test_config, file_func_pairs):
+    by_status = {}
+    for addr, blob in _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
         if blob is None:
             by_status.setdefault('NOT_RECORDED', []).append(addr)
         else:

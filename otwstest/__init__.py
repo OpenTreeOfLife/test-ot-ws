@@ -11,7 +11,7 @@ import threading
 import re
 import copy
 
-__version__ = '0.1.0'
+__version__ = '0.1.6'
 try:
     from enum import Enum
     # noinspection PyCompatibility

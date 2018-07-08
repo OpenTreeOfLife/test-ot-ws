@@ -1,8 +1,8 @@
 # Open Tree integration tests
 
 This repository holds integration tests, intended to answer the
-question, is a new version of the web site good enough to go to
-production?
+question: "is a new version of the web site good enough to go to
+production?"
 
 # Installation 
 Python 3.5 or higher is recommended (see note below on python2.7 prerequisites).

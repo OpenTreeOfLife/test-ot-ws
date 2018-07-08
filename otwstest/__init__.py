@@ -252,6 +252,8 @@ class TestOutcome(object):
 
     def serialize(self, config):
         results_dir = config.get_results_dir(self.test_addr)
+        if not os.path.exists(results_dir):
+            os.makedirs(results_dir)
         outf = os.path.join(results_dir, '{}_outcome.json'.format(self.api_version))
         self.store('status', _tstatus_to_str(self.status))
         self.store('test_addr', self.test_addr)
@@ -380,6 +382,8 @@ def warn(msg):
 
 
 def write_test_list_to_store(iterable):
+    if not os.path.exists(TEST_CACHE_PAR):
+        os.makedirs(TEST_CACHE_PAR)
     write_as_json(iterable, TEST_ADDR_LIST, indent=2)
 
 

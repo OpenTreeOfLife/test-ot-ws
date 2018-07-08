@@ -23,7 +23,7 @@ classifiers = ['Development Status :: 3 - Alpha',
                ]
 setup(
     name='test-ot-ws',
-    version='0.1.6',
+    version='0.1.7',
     description='Library for testing whether or not the Open Tree of Life web services are functioning correctly',
     long_description=readme,
     url='https://github.com/OpenTreeOfLife/test-ot-ws',

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from otwstest.schema.taxonomy.taxon import validate, get_ott_id_property, get_ott_name_property
-from otwstest import demand_property
+from otwstest import demand_property, all_api_versions
 
 
 def taxon_url_frag(outcome):
@@ -16,6 +16,7 @@ def lineage_prop(outcome):
     return 'taxonomic_lineage' if outcome.api_version == 'v2' else 'lineage'
 
 
+@all_api_versions
 def test_simple(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 901642}, validator=validate)
@@ -27,9 +28,6 @@ def test_simple(outcome):  # taxonomy-sensitive test
         outcome.exit_test_with_failure(errstr)
 
 
-test_simple.api_versions = ('v2', 'v3')
-
-
 def _check_ott_id(result, outcome, ott_id):
     prop = get_ott_id_property(outcome.api_version)
     if result[prop] != ott_id:
@@ -37,6 +35,7 @@ def _check_ott_id(result, outcome, ott_id):
         outcome.exit_test_with_failure(errstr)
 
 
+@all_api_versions
 def test_include_children(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_children": "true"},
@@ -50,9 +49,7 @@ def test_include_children(outcome):  # taxonomy-sensitive test
         outcome.exit_test_with_failure(errstr)
 
 
-test_include_children.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_include_lineage(outcome):
     url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_lineage": "true"},
@@ -61,9 +58,7 @@ def test_include_lineage(outcome):
     demand_property(lineage_prop(outcome), result, outcome, 'taxon')
 
 
-test_include_lineage.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_tax_sources(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 766177}, validator=validate)
@@ -74,9 +69,7 @@ def test_tax_sources(outcome):  # taxonomy-sensitive test
             outcome.exit_test_with_failure(errstr)
 
 
-test_tax_sources.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_terminal(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 1066581,
@@ -87,6 +80,3 @@ def test_terminal(outcome):  # taxonomy-sensitive test
         errstr = "Bos taurus (490099) and Bos primigenius (1066590) not returned as " \
                  "descendants of Bos (1066581)\n"
         outcome.exit_test_with_failure(errstr)
-
-
-test_terminal.api_versions = ('v2', 'v3')

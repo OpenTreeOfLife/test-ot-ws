@@ -59,6 +59,11 @@ def _run_queued_test():
                 ALL_PASSED = False
 
 
+def all_api_versions(func):
+    func.api_versions = ('v2', 'v3')
+    return func
+
+
 def run_tests(test_config, addr_fn_pairs_list, test_results):
     for test_addr, fn in addr_fn_pairs_list:
         outcome = test_results.spawning_test(test_config, test_addr)

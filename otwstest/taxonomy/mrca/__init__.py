@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from otwstest.schema.taxonomy.lica import validate
+from otwstest import all_api_versions
 
 
 def _mrca_attr(outcome):
@@ -16,6 +17,7 @@ def _ott_id_attr(outcome):
     return 'ot:ottId' if outcome.api_version == 'v2' else 'ott_id'
 
 
+@all_api_versions
 def test_bad_taxon(outcome):
     url = outcome.make_url(_mrca_url_frag(outcome))
     expected_bad_id = 55518566
@@ -43,18 +45,14 @@ def test_bad_taxon(outcome):
         outcome.exit_test_with_failure(m)
 
 
-test_bad_taxon.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_simple(outcome):
     url = outcome.make_url(_mrca_url_frag(outcome))
     outcome.do_http_json(url, 'POST', data={"ott_ids": [515698, 590452, 409712, 643717]},
                          validator=validate)
 
 
-test_simple.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_no_arg(outcome):
     url = outcome.make_url(_mrca_url_frag(outcome))
     expected_status = 400
@@ -65,9 +63,7 @@ def test_no_arg(outcome):
                          expected_status=expected_status)
 
 
-test_no_arg.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_2(outcome):
     url = outcome.make_url(_mrca_url_frag(outcome))
     blob = outcome.do_http_json(url, 'POST', data={"ott_ids": [901642, 55033]},
@@ -77,6 +73,3 @@ def test_2(outcome):
     if observered_id != expected_id:
         m = 'Expected MRCA ottId to be {} , found {}\n'.format(expected_id, observered_id)
         outcome.exit_test_with_failure(m)
-
-
-test_2.api_versions = ('v2', 'v3')

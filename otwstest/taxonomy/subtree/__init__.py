@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from otwstest.schema.taxonomy.subtree import validate, newick_property
+from otwstest import all_api_versions
 import re
 
 
+@all_api_versions
 def test_simple(outcome):
     url = outcome.make_url('taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698}, validator=validate)
@@ -16,9 +18,7 @@ def test_simple(outcome):
         outcome.exit_test_with_failure(errstr)
 
 
-test_simple.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_des_sp(outcome):
     url = outcome.make_url('taxonomy/subtree')
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 372706}, validator=validate)
@@ -33,6 +33,3 @@ def test_des_sp(outcome):
     if re.search(namecheck2, tree) is None:
         errstr = 'the expected fragment for terminal taxon "{}" does not appear in tree'
         outcome.exit_test_with_failure(errstr.format(DESCENDANTTAXONSTR))
-
-
-test_des_sp.api_versions = ('v2', 'v3')

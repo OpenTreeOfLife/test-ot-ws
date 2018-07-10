@@ -4,11 +4,12 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re
-from otwstest import is_str_type
+from otwstest import is_str_type, all_api_versions
 import otwstest.schema.tnrs as tnrs
 from otwstest.schema.taxonomy.taxon import get_ott_id_property
 
 
+@all_api_versions
 def test_autocomplete_name(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/autocomplete_name')
     search_name = "Endoxyla"
@@ -22,9 +23,7 @@ def test_autocomplete_name(outcome):  # taxonomy-sensitive test
             outcome.exit_test_with_failure(errstr.format(uname, search_name))
 
 
-test_autocomplete_name.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_contexts(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/contexts')
     result = outcome.do_http_json(url, 'POST')
@@ -51,9 +50,7 @@ def test_contexts(outcome):  # taxonomy-sensitive test
         outcome.exit_test_with_failure(errstr)
 
 
-test_contexts.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_infer_context(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/infer_context')
     data = {"names": ["Pan", "Homo", "Mus musculus", "Upupa epops"]}
@@ -67,9 +64,7 @@ def test_infer_context(outcome):  # taxonomy-sensitive test
         outcome.exit_test_with_failure(errstr)
 
 
-test_infer_context.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_match_names(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/match_names')
     test_list = ["Aster", "Symphyotrichum", "Erigeron", "Barnadesia", "Hylobates"]
@@ -94,9 +89,7 @@ def test_match_names(outcome):  # taxonomy-sensitive test
             outcome.exit_test_with_failure(errstr.format(m.get(u'matched_name'), test_list))
 
 
-test_match_names.api_versions = ('v2', 'v3')
-
-
+@all_api_versions
 def test_match_hyphenated(outcome):  # taxonomy-sensitive test
     url = outcome.make_url('tnrs/match_names')
     test_list = ["Polygonia c-album"]
@@ -116,6 +109,3 @@ def test_match_hyphenated(outcome):  # taxonomy-sensitive test
         if t.get(ott_id_prop) not in test_ids:
             errstr = "bad match return {}, expected one of {}"
             outcome.exit_test_with_failure(errstr.format(m.get(u'ot:ottId'), test_ids))
-
-
-test_match_hyphenated.api_versions = ('v2', 'v3')

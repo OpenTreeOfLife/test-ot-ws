@@ -24,6 +24,23 @@ except ImportError:
 import requests
 import jsonschema
 
+
+SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
+DEF_SYST_CHOICE = 'production'
+ACTION_CHOICES = frozenset(['curl', 'report', 'retry-failing', 'scan', 'schema', 'test', ])
+SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
+DEBUG_OUTPUT, SILENT_MODE, STATUS_OUTPUT = False, False, True
+TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
+TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
+SERVICE_CHOICES = ('taxonomy', 'tnrs')
+DEFAULT_NUM_THREADS = 8
+TEST_NAME_PREF = 'otwstest.'
+SCHEMA_URL_PREF = 'https://files.opentreeoflife.org/api/schema/'
+TEST_QUEUE = Queue()
+ALL_PASSED = True
+ALL_PASSED_LOCK = threading.Lock()
+
+
 if sys.version_info.major == 2:
     # noinspection PyUnresolvedReferences
     def is_str_type(x):
@@ -33,15 +50,11 @@ else:
     def is_str_type(x):
         return isinstance(x, str)
 
-TEST_QUEUE = Queue()
-ALL_PASSED = True
-ALL_PASSED_LOCK = threading.Lock()
-
 
 def compose_schema2version(v2, current):
     v3 = copy.deepcopy(current)
     v3['$id'] = v3['$id'].replace('/current/', '/v3/')
-    v2['$id'] = v2['$id'].replace('/current/', '/v3/')
+    v2['$id'] = v2['$id'].replace('/current/', '/v2/')
     return {'current': current, 'v2': v2, 'v3': v3}
 
 
@@ -364,22 +377,13 @@ def _tstatus_to_str(status):
     return str(status)[len('TestStatus.'):]
 
 
-SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
-DEF_SYST_CHOICE = 'production'
-ACTION_CHOICES = frozenset(['curl', 'report', 'retry-failing', 'scan', 'test', ])
-SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
-DEBUG_OUTPUT, SILENT_MODE = False, False
-TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
-TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
-SERVICE_CHOICES = ('taxonomy', 'tnrs')
-DEFAULT_NUM_THREADS = 8
-TEST_NAME_PREF = 'otwstest.'
-
-
 def debug(msg):
     if DEBUG_OUTPUT:
         sys.stderr.write('{} debug: {}\n'.format(SCRIPT_NAME, msg))
 
+def status(msg):
+    if STATUS_OUTPUT:
+        sys.stderr.write('{}\n'.format(msg))
 
 def warn(msg):
     if not SILENT_MODE:
@@ -454,6 +458,9 @@ class TestingConfig(object):
             DEBUG_OUTPUT = True
         elif self.noise_level == 0:
             SILENT_MODE = True
+        elif self.noise_level == 1:
+            SILENT_MODE = True
+
         self.needs_newline = False
         self.num_threads = num_threads
         self._res_par = os.path.join(TEST_CACHE_PAR, system_to_test)
@@ -546,6 +553,37 @@ class TestingConfig(object):
             x = _collect_file_func_pairs(otwstest.__dict__[s], addr + s, self._testing_versions)
             file_func_pairs.extend(x)
         return file_func_pairs
+
+
+def scan_for_schema():
+    _schema = []
+    # noinspection PyUnresolvedReferences
+    from otwstest.schema import taxonomy
+    from otwstest.schema import tnrs
+    top = (taxonomy, tnrs)
+    for mod in top:
+        sklist = [i for i in mod.__dict__.keys() if not i.startswith('_')]
+        for sk in sklist:
+            sv = getattr(mod, sk)
+            d = getattr(sv, 'get_version2schema')()
+            _schema.extend(d.values())
+    return _schema
+
+def _do_schema_action():
+    schema_list = scan_for_schema()
+    for _schema in schema_list:
+        remote_url = _schema['$id']
+        assert remote_url.startswith(SCHEMA_URL_PREF)
+        suff = remote_url[len(SCHEMA_URL_PREF):]
+        while suff.startswith('/'):
+            suff = suff[1:]
+        subd, fn = os.path.split(suff)
+        ad = os.path.join(TEST_CACHE_PAR, 'schema', subd)
+        if not os.path.isdir(ad):
+            os.makedirs(ad)
+        dfp = os.path.join(os.path.join(ad, fn))
+        write_as_json(_schema, dfp)
+        status('Schema written to "{}"'.format(dfp))
 
 
 def _collect_file_func_pairs(mod_obj, addr, version_set=None):
@@ -711,6 +749,10 @@ def top_main(argv, deleg=None, nested=False):
     if parsed.version:
         print('{} using otwstest version {}'.format(SCRIPT_NAME, __version__))
         return tr
+    if parsed.action == 'schema':
+        _do_schema_action()
+        return tr
+
     v = parsed.api_version
     av = EXPLICIT_API_VERSIONS if v.lower() == 'all' else [v]
     tc = TestingConfig(system_to_test=parsed.system,
@@ -719,37 +761,35 @@ def top_main(argv, deleg=None, nested=False):
                        api_versions=av
                        )
     try:
-        if deleg is None:
-            # noinspection PyUnresolvedReferences
-            s = parsed.service
-            if isinstance(s, str):
-                s = [s]
-            file_func_pairs = tc.scan_for_services(list(s or SERVICE_CHOICES))
-            addr_to_skip = []
-            if parsed.action == 'retry-failing':
-                for blob in tc.iter_previous():
-                    if blob.get('status', '').upper() == 'SUCCESS':
-                        addr_to_skip.append(blob['test_addr'])
-            elif parsed.action == 'scan':
-                write_test_list_to_store([i[0] for i in file_func_pairs])
-                return tr
-            else:
-                addr_to_skip = frozenset(addr_to_skip)
-                file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
-            if parsed.test is not None:
-                test_glob = '{}{}'.format(TEST_NAME_PREF, parsed.test)
-                try:
-                    file_func_pairs = [i for i in file_func_pairs if i[0].startswith(test_glob)]
-                except Exception:
-                    pass
-                if len(file_func_pairs) == 0:
-                    sys.exit('No tests matched --test="{}"'.format(parsed.test))
-            if parsed.action == 'report':
-                _do_report_action(tc, file_func_pairs)
-                return tr
-            elif parsed.action == 'curl':
-                _do_curl_action(tc, file_func_pairs)
-                return tr
+        # noinspection PyUnresolvedReferences
+        s = parsed.service
+        if isinstance(s, str):
+            s = [s]
+        file_func_pairs = tc.scan_for_services(list(s or SERVICE_CHOICES))
+        addr_to_skip = []
+        if parsed.action == 'retry-failing':
+            for blob in tc.iter_previous():
+                if blob.get('status', '').upper() == 'SUCCESS':
+                    addr_to_skip.append(blob['test_addr'])
+        elif parsed.action == 'scan':
+            write_test_list_to_store([i[0] for i in file_func_pairs])
+            return tr
+        else:
+            addr_to_skip = frozenset(addr_to_skip)
+            file_func_pairs = [i for i in file_func_pairs if i[0] not in addr_to_skip]
+        if parsed.test is not None:
+            test_glob = '{}{}'.format(TEST_NAME_PREF, parsed.test)
+            try:
+                file_func_pairs = [i for i in file_func_pairs if i[0].startswith(test_glob)]
+            except Exception:
+                pass
+            if len(file_func_pairs) == 0:
+                sys.exit('No tests matched --test="{}"'.format(parsed.test))
+        if parsed.action == 'report':
+            _do_report_action(tc, file_func_pairs)
+        elif parsed.action == 'curl':
+            _do_curl_action(tc, file_func_pairs)
+        else:
             run_tests(tc, file_func_pairs, tr)
         return tr
     finally:

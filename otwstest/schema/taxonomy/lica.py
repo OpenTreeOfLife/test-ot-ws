@@ -3,7 +3,7 @@
 import copy
 import jsonschema
 from .taxon import taxon_obj_properties
-from otwstest import compose_schema2version
+from otwstest import compose_schema2version, SCHEMA_URL_PREF
 
 _version2schema = None
 
@@ -14,7 +14,7 @@ def get_version2schema():
         return _version2schema
 
     current = {
-        "$id": "https://tree.opentreeoflife.org/schema/current/taxonomy/mrca.json",
+        "$id": SCHEMA_URL_PREF + "current/taxonomy/mrca.json",
         "type": "object",
         "definitions": {},
         "$schema": "http://json-schema.org/draft-07/schema#",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from . import taxonomy
+from . import taxonomy, tnrs
 

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import copy
 import jsonschema
-from otwstest import compose_schema2version
+from otwstest import compose_schema2version, SCHEMA_URL_PREF
 
 _version2schema = None
 
@@ -12,7 +12,7 @@ def get_version2schema():
     if _version2schema is not None:
         return _version2schema
     current = {
-        "$id": "https://tree.opentreeoflife.org/schema/current/tnrs/infer_context.json",
+        "$id": SCHEMA_URL_PREF + "current/tnrs/infer_context.json",
         "type": "object",
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {

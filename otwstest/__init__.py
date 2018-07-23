@@ -77,6 +77,10 @@ def all_api_versions(func):
     return func
 
 
+def not_v2_version(func):
+    func.api_versions = ('v3',)
+    return func
+
 def run_tests(test_config, addr_fn_pairs_list, test_results):
     for test_addr, fn in addr_fn_pairs_list:
         outcome = test_results.spawning_test(test_config, test_addr)

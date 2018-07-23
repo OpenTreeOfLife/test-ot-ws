@@ -32,7 +32,7 @@ SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT, SILENT_MODE, STATUS_OUTPUT = False, False, True
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
-SERVICE_CHOICES = ('taxonomy', 'tnrs')
+SERVICE_CHOICES = ('taxonomy', 'tnrs', 'tree_of_life')
 DEFAULT_NUM_THREADS = 8
 TEST_NAME_PREF = 'otwstest.'
 SCHEMA_URL_PREF = 'https://files.opentreeoflife.org/api/schema/'
@@ -526,7 +526,7 @@ class TestingConfig(object):
             m = tax_pat.match(frag)
             if m:
                 vers, top_level, tail_frag = m.groups()
-                if top_level in ('taxonomy', 'tnrs'):
+                if top_level in ('taxonomy', 'tnrs', 'tree_of_life'):
                     t = 'http://localhost:7474/db/data/ext/{}_{}/graphdb/{}'
                     return t.format(top_level, vers, tail_frag)
             raise NotImplemented('non-taxonomy local system_to_test')
@@ -560,7 +560,8 @@ def scan_for_schema():
     # noinspection PyUnresolvedReferences
     from otwstest.schema import taxonomy
     from otwstest.schema import tnrs
-    top = (taxonomy, tnrs)
+    from otwstest.schema import tree_of_life
+    top = (taxonomy, tnrs, tree_of_life)
     for mod in top:
         sklist = [i for i in mod.__dict__.keys() if not i.startswith('_')]
         for sk in sklist:
@@ -860,4 +861,4 @@ def _do_report_action(test_config, file_func_pairs):
     print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 
-from . import taxonomy, tnrs, schema
+from . import taxonomy, tnrs, tree_of_life, schema

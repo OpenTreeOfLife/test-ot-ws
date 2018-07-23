@@ -8,6 +8,11 @@ from otwstest import all_api_versions
 @all_api_versions
 def test_simple(outcome):
     url = outcome.make_url('tree_of_life/about')
+    outcome.do_http_json(url, 'POST', validator=validate)
+
+@all_api_versions
+def test_source_list(outcome):
+    url = outcome.make_url('tree_of_life/about')
     outcome.do_http_json(url, 'POST',
                          data={"include_source_list": True},
                          validator=validate)

@@ -32,9 +32,11 @@ def get_tree_of_life_about_properties(version):
                 "type": "array",
                 "items": {"type": "string"}
             },
-            "taxonomy": {"type": "string"},
+            "num_source_studies": {"type": "integer"},
             "num_source_trees": {"type": "integer"},
             "source_id_map": {"type": "object"},
+            "taxonomy_version": {"type": "string"},
+            "taxonomy": {"type": "string"},
             "synth_id": {"type": "string"},
             "root": {
                 "type": "object",
@@ -74,7 +76,7 @@ def get_version2schema():
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": get_tree_of_life_about_properties('v3'),
         "required": ["date_created", "num_source_studies", "num_source_trees",
-                     "root", "synth_id", "taxonomy"]
+                     "root", "synth_id", 'taxonomy_version', 'filtered_flags', ]
     }
     v2 = copy.deepcopy(current)
     p2 = get_tree_of_life_about_properties('v2')

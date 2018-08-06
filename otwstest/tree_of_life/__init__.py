@@ -1,4 +1,4 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from . import about, induced_subtree, mrca, subtree
+from . import about, induced_subtree, mrca, node_info, subtree

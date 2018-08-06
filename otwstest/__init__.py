@@ -318,7 +318,7 @@ class TestOutcome(object):
         resp, call_out = self.request(verb, url, headers, data=data)
         call_out['expected_status_code'] = expected_status
         if resp.status_code != expected_status:
-            m = 'Wrong status code. Expected {}. Got {}.'.format(resp.status_code, expected_status)
+            m = 'Wrong status code. Expected {}. Got {}.'.format(expected_status, resp.status_code)
             self.exit_test_with_error(m)
         results = resp.json()
         call_out['response_body'] = results

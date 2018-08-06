@@ -4,6 +4,28 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
 
+def get_v3_tol_taxon_props_dict():
+    return {
+        "tax_sources": {
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "ott_id": {"type": "integer"},
+        "rank": {"type": "string"},
+        "name": {"type": "string"},
+        "unique_name": {"type": "string"}
+    }
+
+def get_v3_taxon_props_dict():
+    return {
+        "taxon": {
+            "type": "object",
+            "properties": get_v3_tol_taxon_props_dict()
+        },
+        "num_tips":  {"type": "integer"},
+        "node_id": {"type": "string"}
+    }
+
 
 def get_tree_of_life_about_properties(version):
     r = {"num_source_studies": {"type": "integer"}, }
@@ -40,23 +62,7 @@ def get_tree_of_life_about_properties(version):
             "synth_id": {"type": "string"},
             "root": {
                 "type": "object",
-                "properties": {
-                    "taxon": {
-                        "type": "object",
-                        "properties": {
-                            "tax_sources": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            },
-                            "ott_id": {"type": "integer"},
-                            "rank": {"type": "string"},
-                            "name": {"type": "string"},
-                            "unique_name": {"type": "string"}
-                        }
-                    },
-                    "num_tips": {"type": "integer"},
-                    "node_id": {"type": "string"}
-                }
+                "properties": get_v3_taxon_props_dict()
             }
         }
     r.update(v)

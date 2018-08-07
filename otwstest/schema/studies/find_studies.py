@@ -3,8 +3,8 @@
 import copy
 import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
-from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
-                                                get_v3_tol_taxon_props_dict)
+from otwstest.schema.primitives import (SCHEMA_INTEGER,
+                                        SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS,)
 
 def get_find_studies_properties(version):
     p = ["ot:studyPublicationReference", "ot:curatorName",
@@ -13,16 +13,12 @@ def get_find_studies_properties(version):
         ]
     pd = {}
     for prop in p:
-        pd[prop] = {"type": "string"}
-    return {
-        "matched_studies": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": pd
-            }
-        }
-    }
+        pd[prop] = SCHEMA_STRING()
+    for prop in ["ot:studyYear",  "ot:focalClade"]:
+        pd[prop] = SCHEMA_INTEGER()
+    ms = SCHEMA_ARRAY_OBJECTS()
+    ms['items']['properties'] = pd
+    return {'matched_studies': ms}
 
 _version2schema = None
 

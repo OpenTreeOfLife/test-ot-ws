@@ -10,7 +10,7 @@ def test_find_by_doi(outcome):
     url = outcome.make_url('studies/find_studies')
     d = {'verbose': True,
          'property': 'ot:studyPublication',
-         'value': '10.1600/036364408785679851', }
+         'value': 'http://dx.doi.org/10.1073/pnas.0308657101', }
     outcome.do_http_json(url, verb='POST', data=d, validator=validate)
 
 @all_api_versions

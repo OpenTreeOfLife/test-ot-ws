@@ -3,21 +3,12 @@
 import copy
 import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
-from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
-                                                get_v3_tol_taxon_props_dict)
+from otwstest.schema.studies.find_studies import get_find_studies_properties
 from otwstest.schema.primitives import (SCHEMA_INTEGER,
                                         SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS,)
 
-def get_find_studies_properties(version):
-    p = ["ot:studyPublicationReference", "ot:curatorName",
-         "ot:studyId",
-         "ot:focalCladeOTTTaxonName", "ot:dataDeposit", "ot:studyPublication"
-        ]
-    pd = {}
-    for prop in p:
-        pd[prop] = SCHEMA_STRING()
-    for prop in ["ot:studyYear",  "ot:focalClade"]:
-        pd[prop] = SCHEMA_INTEGER()
+def get_find_trees_properties(version):
+    s = get_find_studies_properties(version)
     mt = SCHEMA_ARRAY_OBJECTS()
     mt['items']['properties'] = {
         'ot:studyId': SCHEMA_STRING(),
@@ -25,10 +16,8 @@ def get_find_studies_properties(version):
         'ot:branchLengthMode': SCHEMA_STRING(),
         'ot:branchLengthDescription': SCHEMA_STRING(),
     }
-    pd['matched_trees'] = mt
-    ms = SCHEMA_ARRAY_OBJECTS()
-    ms['items']['properties'] = pd
-    return {'matched_studies': ms}
+    s['matched_studies']['items']['properties']['matched_trees'] = mt
+    return s
 
 _version2schema = None
 
@@ -37,7 +26,7 @@ def get_version2schema():
     global _version2schema
     if _version2schema is not None:
         return _version2schema
-    p = get_find_studies_properties('v3')
+    p = get_find_trees_properties('v3')
     current = {
         "$id": SCHEMA_URL_PREF + "current/tree_of_life/about.json",
         "type": "object",

@@ -31,7 +31,7 @@ SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT, SILENT_MODE, STATUS_OUTPUT = False, False, True
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
-SERVICE_CHOICES = ('taxonomy', 'tnrs', 'tree_of_life', 'studies')
+SERVICE_CHOICES = ('frontend', 'taxonomy', 'tnrs', 'tree_of_life', 'studies')
 DEFAULT_NUM_THREADS = 8
 TEST_NAME_PREF = 'otwstest.'
 SCHEMA_URL_PREF = 'https://files.opentreeoflife.org/api/schema/'
@@ -231,6 +231,11 @@ class TestOutcome(object):
         while frag.startswith('/'):
             frag = frag[1:]
         return self.config.configure_url('{}/{}'.format(self.api_version, frag))
+
+    def make_front_end_url(self, frag):
+        while frag.startswith('/'):
+            frag = frag[1:]
+        return self.config.configure_url(frag, front_end=True)
 
     def uncaught(self, ex_message):
         self.status = TestStatus.UNCAUGHT_EXCEPTION
@@ -520,14 +525,18 @@ class TestingConfig(object):
         if self.needs_newline:
             sys.stderr.write('\n')
 
-    def configure_url(self, frag):
+    def configure_url(self, frag, front_end=False):
         while frag.startswith('/'):
             frag = frag[1:]
         while frag.endswith('/'):
             frag = frag[:-1]
         if self.system_to_test == 'production':
+            if front_end:
+                return 'https://tree.opentreeoflife.org/{}'.format(frag)
             return 'https://api.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'dev':
+            if front_end:
+                return 'https://devtree.opentreeoflife.org/{}'.format(frag)
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'local':
             tax_pat = re.compile(r'^(v[0-9.]+)/([a-z]+)/(.+)$')
@@ -871,4 +880,4 @@ def _do_report_action(test_config, file_func_pairs):
     print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 
-from . import taxonomy, tnrs, tree_of_life, studies, schema
+from . import frontend, taxonomy, tnrs, tree_of_life, studies, schema

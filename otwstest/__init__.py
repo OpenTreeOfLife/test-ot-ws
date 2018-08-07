@@ -303,7 +303,8 @@ class TestOutcome(object):
                      expected_status=200,
                      expected_response=None,
                      schema=None,
-                     validator=None):
+                     validator=None,
+                     return_raw_content=False):
         """Call `url` with the http method of `verb`.
         If specified `data` is passed using json.dumps
         returns True if the response:
@@ -319,6 +320,8 @@ class TestOutcome(object):
         if resp.status_code != expected_status:
             m = 'Wrong status code. Expected {}. Got {}.'.format(expected_status, resp.status_code)
             self.exit_test_with_error(m)
+        if return_raw_content:
+            return resp.text
         results = resp.json()
         call_out['response_body'] = results
         if schema is not None or validator is not None:

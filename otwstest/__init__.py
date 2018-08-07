@@ -24,7 +24,6 @@ except ImportError:
 import requests
 import jsonschema
 
-
 SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
 DEF_SYST_CHOICE = 'production'
 ACTION_CHOICES = frozenset(['curl', 'report', 'retry-failing', 'scan', 'schema', 'test', ])
@@ -39,7 +38,6 @@ SCHEMA_URL_PREF = 'https://files.opentreeoflife.org/api/schema/'
 TEST_QUEUE = Queue()
 ALL_PASSED = True
 ALL_PASSED_LOCK = threading.Lock()
-
 
 if sys.version_info.major == 2:
     # noinspection PyUnresolvedReferences
@@ -80,6 +78,7 @@ def all_api_versions(func):
 def not_v2_version(func):
     func.api_versions = ('v3',)
     return func
+
 
 def run_tests(test_config, addr_fn_pairs_list, test_results):
     for test_addr, fn in addr_fn_pairs_list:
@@ -377,17 +376,19 @@ class TestOutcome(object):
         self.store('detailed', detailed if detailed else brief)
 
 
-def _tstatus_to_str(status):
-    return str(status)[len('TestStatus.'):]
+def _tstatus_to_str(status_msg):
+    return str(status_msg)[len('TestStatus.'):]
 
 
 def debug(msg):
     if DEBUG_OUTPUT:
         sys.stderr.write('{} debug: {}\n'.format(SCRIPT_NAME, msg))
 
+
 def status(msg):
     if STATUS_OUTPUT:
         sys.stderr.write('{}\n'.format(msg))
+
 
 def warn(msg):
     if not SILENT_MODE:
@@ -574,6 +575,7 @@ def scan_for_schema():
             d = getattr(sv, 'get_version2schema')()
             _schema.extend(d.values())
     return _schema
+
 
 def _do_schema_action():
     schema_list = scan_for_schema()
@@ -858,11 +860,11 @@ def _do_report_action(test_config, file_func_pairs):
         else:
             by_status.setdefault(blob.get('status', 'UNKNOWN'), []).append(addr)
     status_sorted = [i for i in STATUS_REPORT_ORDER if i in by_status]
-    for status in status_sorted:
-        addr_list = by_status[status]
+    for status_msg in status_sorted:
+        addr_list = by_status[status_msg]
         for addr in addr_list:
             a = addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
-            print('{} {}'.format(a, status))
+            print('{} {}'.format(a, status_msg))
     print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 

@@ -6,16 +6,17 @@ from otwstest import compose_schema2version, SCHEMA_URL_PREF
 from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
                                                 get_v3_tol_taxon_props_dict)
 
+
 def get_tree_of_life_mrca_properties(version):
     if version == 'v2':
-        v ={}
+        v = {}
         str_props = ["mrca_rank", "mrca_name", "tree_id",
                      "ott_id", "mrca_unique_name", "nearest_taxon_mrca_unique_name",
-                    "nearest_taxon_mrca_name", "nearest_taxon_mrca_rank", ]
+                     "nearest_taxon_mrca_name", "nearest_taxon_mrca_rank", ]
         int_props = ["nearest_taxon_mrca_node_id", "nearest_taxon_mrca_ott_id",
                      "mrca_node_id"]
-        list_props =  ["invalid_node_ids", "node_ids_not_in_tree",
-                       "ott_ids_not_in_tree", "invalid_ott_ids"]
+        list_props = ["invalid_node_ids", "node_ids_not_in_tree",
+                      "ott_ids_not_in_tree", "invalid_ott_ids"]
         for p in str_props:
             v[p] = {"type": "string"}
         for p in int_props:

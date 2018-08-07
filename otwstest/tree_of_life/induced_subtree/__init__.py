@@ -16,6 +16,7 @@ def test_simple(outcome):
     outcome.do_http_json(url, 'POST',
                          data={u'node_ids': id_list}, validator=validate)
 
+
 @not_v2_version
 def test_400_expected(outcome):
     url = outcome.make_url('tree_of_life/induced_subtree')

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import copy
-import jsonschema
-from otwstest import compose_schema2version, SCHEMA_URL_PREF
-from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
-                                                get_v3_tol_taxon_props_dict)
 
+import jsonschema
+
+from otwstest import compose_schema2version, SCHEMA_URL_PREF
 
 _version2schema = None
 

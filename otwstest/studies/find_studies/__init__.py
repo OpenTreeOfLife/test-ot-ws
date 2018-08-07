@@ -13,6 +13,7 @@ def test_find_by_doi(outcome):
          'value': 'http://dx.doi.org/10.1073/pnas.0308657101', }
     outcome.do_http_json(url, verb='POST', data=d, validator=validate)
 
+
 @all_api_versions
 def test_find_all(outcome):
     url = outcome.make_url('studies/find_studies')

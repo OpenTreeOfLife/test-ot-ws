@@ -4,6 +4,7 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
 
+
 def get_v3_tol_taxon_props_dict():
     return {
         "tax_sources": {
@@ -16,13 +17,14 @@ def get_v3_tol_taxon_props_dict():
         "unique_name": {"type": "string"}
     }
 
+
 def get_v3_taxon_props_dict():
     return {
         "taxon": {
             "type": "object",
             "properties": get_v3_tol_taxon_props_dict()
         },
-        "num_tips":  {"type": "integer"},
+        "num_tips": {"type": "integer"},
         "node_id": {"type": "string"}
     }
 

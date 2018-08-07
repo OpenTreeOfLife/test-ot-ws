@@ -19,11 +19,11 @@ def get_tree_of_life_induced_subtree_properties(version):
                 "type": "array",
                 "items": {"type": "integer"}
             },
-            "ott_ids_not_in_graph":  {
+            "ott_ids_not_in_graph": {
                 "type": "array",
                 "items": {"type": "integer"}
             },
-            "ott_ids_not_in_tree":  {
+            "ott_ids_not_in_tree": {
                 "type": "array",
                 "items": {"type": "integer"}
             },
@@ -38,6 +38,7 @@ def get_tree_of_life_induced_subtree_properties(version):
         }
     r.update(v)
     return r
+
 
 _version2schema = None
 

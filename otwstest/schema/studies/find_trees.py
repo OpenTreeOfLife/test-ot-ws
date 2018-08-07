@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import copy
+
 import jsonschema
+
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
+from otwstest.schema.primitives import (SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS, )
 from otwstest.schema.studies.find_studies import get_find_studies_properties
-from otwstest.schema.primitives import (SCHEMA_INTEGER,
-                                        SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS,)
+
 
 def get_find_trees_properties(version):
     s = get_find_studies_properties(version)
@@ -18,6 +20,7 @@ def get_find_trees_properties(version):
     }
     s['matched_studies']['items']['properties']['matched_trees'] = mt
     return s
+
 
 _version2schema = None
 

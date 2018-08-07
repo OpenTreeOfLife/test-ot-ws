@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import copy
-import jsonschema
-from otwstest import compose_schema2version, SCHEMA_URL_PREF
-from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
-                                                get_v3_tol_taxon_props_dict)
 
+import jsonschema
+
+from otwstest import compose_schema2version, SCHEMA_URL_PREF
 from otwstest.schema.primitives import (SCHEMA_STRING, SCHEMA_INTEGER, SCHEMA_BOOL,
                                         SCHEMA_ARRAY, SCHEMA_OBJECT)
+from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict)
+
+
 def get_tree_of_life_node_info_properties(version):
     if version == 'v2':
-        v ={}
+        v = {}
         str_props = ["tree_id",
                      "name", "rank", "tax_source", ]
         int_props = ["ott_id", 'num_synth_tips', 'num_tips', 'node_id']
-        list_props =  ["tree_sources", 'synth_sources']
+        list_props = ["tree_sources", 'synth_sources']
         for p in str_props:
             v[p] = SCHEMA_STRING()
         for p in int_props:

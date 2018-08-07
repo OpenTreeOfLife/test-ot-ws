@@ -16,6 +16,7 @@ def test_simple(outcome):
         d = {'node_id': 'ott{}'.format(o)}
     outcome.do_http_json(url, 'POST', data=d, validator=validate)
 
+
 @all_api_versions
 def test_include_lineage(outcome):
     o = 396446
@@ -34,5 +35,3 @@ def test_mrca_designation(outcome):
     url = outcome.make_url('tree_of_life/node_info')
     d = {'node_id': 'mrcaott3504ott396446'}
     outcome.do_http_json(url, 'POST', data=d, validator=validate)
-
-

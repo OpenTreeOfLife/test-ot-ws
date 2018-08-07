@@ -6,6 +6,8 @@ from otwstest import compose_schema2version, SCHEMA_URL_PREF
 from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
                                                 get_v3_tol_taxon_props_dict)
 
+from otwstest.schema.primitives import (SCHEMA_STRING, SCHEMA_INTEGER, SCHEMA_BOOL,
+                                        SCHEMA_ARRAY, SCHEMA_OBJECT)
 def get_tree_of_life_node_info_properties(version):
     if version == 'v2':
         v ={}
@@ -14,17 +16,17 @@ def get_tree_of_life_node_info_properties(version):
         int_props = ["ott_id", 'num_synth_tips', 'num_tips', 'node_id']
         list_props =  ["tree_sources", 'synth_sources']
         for p in str_props:
-            v[p] = {"type": "string"}
+            v[p] = SCHEMA_STRING()
         for p in int_props:
-            v[p] = {"type": "integer"}
+            v[p] = SCHEMA_INTEGER()
         for p in list_props:
-            v[p] = {"type": "array"}
-        v['in_synth_tree'] = {"type": "boolean"}
+            v[p] = SCHEMA_ARRAY()
+        v['in_synth_tree'] = SCHEMA_BOOL()
     else:
         v = {
-            "partial_path_of": {"type": "object"},
-            "supported_by": {"type": "object"},
-            "terminal": {"type": "object"},
+            "partial_path_of": SCHEMA_OBJECT(),
+            "supported_by": SCHEMA_OBJECT(),
+            "terminal": SCHEMA_OBJECT(),
         }
         v.update(get_v3_taxon_props_dict())
     return v

@@ -5,12 +5,12 @@ import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
 from otwstest.schema.tree_of_life.about import (get_v3_taxon_props_dict,
                                                 get_v3_tol_taxon_props_dict)
-from otwstest.schema.primitives import array_of_strings
+from otwstest.schema.primitives import SCHEMA_ARRAY_OF_STRINGS
 
 def get_find_properties_properties(version):
     return {
-        "tree_properties": array_of_strings,
-        "study_properties": array_of_strings,
+        "tree_properties": SCHEMA_ARRAY_OF_STRINGS(),
+        "study_properties": SCHEMA_ARRAY_OF_STRINGS(),
     }
 
 _version2schema = None

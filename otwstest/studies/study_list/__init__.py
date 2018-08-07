@@ -11,6 +11,6 @@ def validate(doc, version='current'):
     return True
 
 @all_api_versions
-def test_get_tree_nexus(outcome):
+def test_study_list(outcome):
     url = outcome.make_url('study_list')
     outcome.do_http_json(url, validator=validate)

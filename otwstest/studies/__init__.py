@@ -3,5 +3,5 @@
 
 from . import (find_studies, find_trees,
                properties,
-               study_list,
+               study_get, study_list,
                tree_get,)

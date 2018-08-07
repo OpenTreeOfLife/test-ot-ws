@@ -12,3 +12,8 @@ def test_find_by_doi(outcome):
          'property': 'ot:studyPublication',
          'value': '10.1600/036364408785679851', }
     outcome.do_http_json(url, verb='POST', data=d, validator=validate)
+
+@all_api_versions
+def test_find_all(outcome):
+    url = outcome.make_url('studies/find_studies')
+    outcome.do_http_json(url, verb='POST', validator=validate)

@@ -5,10 +5,13 @@ from otwstest import all_api_versions
 import jsonschema
 from otwstest.schema.primitives import SCHEMA_ARRAY_OF_STRINGS
 
+
+# noinspection PyUnusedLocal
 def validate(doc, version='current'):
     schema = SCHEMA_ARRAY_OF_STRINGS()
     jsonschema.validate(doc, schema)
     return True
+
 
 @all_api_versions
 def test_study_list(outcome):

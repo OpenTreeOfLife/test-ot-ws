@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from otwstest import all_api_versions
-import jsonschema
-from otwstest.schema.primitives import SCHEMA_ARRAY_OF_STRINGS
 
 
 @all_api_versions
@@ -17,4 +15,4 @@ def test_file(outcome):
     file_id = x[0]['id']
     url = outcome.make_url('study/{}/file/{}'.format(study_id, file_id))
     outcome.do_http_json(url, return_raw_content=True)
-    
+

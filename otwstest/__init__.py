@@ -24,7 +24,8 @@ except ImportError:
 import requests
 import jsonschema
 
-SYST_CHOICES = frozenset(['dev', 'local', 'production', ])
+_machines = ['ot{}'.format(i) for i in range(10, 100)]
+SYST_CHOICES = frozenset(['dev', 'local', 'production', ] + _machines)
 DEF_SYST_CHOICE = 'production'
 ACTION_CHOICES = frozenset(['curl', 'report', 'retry-failing', 'scan', 'schema', 'test', ])
 SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
@@ -547,6 +548,8 @@ class TestingConfig(object):
                     t = 'http://localhost:7474/db/data/ext/{}_{}/graphdb/{}'
                     return t.format(top_level, vers, tail_frag)
             raise NotImplemented('non-taxonomy local system_to_test')
+        if self.system_to_test.startswith('ot'):
+            return 'https://{}.opentreeoflife.org/{}'.format(self.system_to_test, frag)
         assert False
 
     def iter_previous(self):
@@ -691,7 +694,8 @@ def top_main(argv, deleg=None, nested=False):
                         'default. "dev" runs the test against the development servers, and '
                         '"local" tells the tests to run against the default endpoints used '
                         'by developers of Open Tree of Life when testing on their own '
-                        'computers.')
+                        'computers. arguments in the form of "ot#" will be assumed to name'
+                        'machines in the .opentreeoflife.org domain')
     TEST_CHOICES = get_globbed_test_list()
     p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False,
                    help='Specifies a prefix of a test name. All test names that start with that '

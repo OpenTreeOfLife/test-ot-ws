@@ -323,13 +323,21 @@ class TestOutcome(object):
             headers = {'content-type': 'application/json', 'accept': 'application/json', }
         resp, call_out = self.request(verb, url, headers, data=data)
         call_out['expected_status_code'] = expected_status
+        if not return_raw_content:
+            try:
+                results = resp.json()
+            except:
+                try:
+                    results = resp.text
+                except:
+                    results = None
+            call_out['response_body'] = results
+
         if resp.status_code != expected_status:
             m = 'Wrong status code. Expected {}. Got {}.'.format(expected_status, resp.status_code)
             self.exit_test_with_error(m)
         if return_raw_content:
             return resp.text
-        results = resp.json()
-        call_out['response_body'] = results
         if schema is not None or validator is not None:
             try:
                 if schema is not None:

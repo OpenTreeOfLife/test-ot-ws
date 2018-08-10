@@ -873,17 +873,33 @@ def _do_curl_action(test_config, file_func_pairs):
 
 def _do_report_action(test_config, file_func_pairs):
     by_status = {}
+    extra_by_addr = {}
     for addr, blob in _iter_addr_and_blob_for_prev_run(test_config, file_func_pairs):
         if blob is None:
             by_status.setdefault('NOT_RECORDED', []).append(addr)
         else:
-            by_status.setdefault(blob.get('status', 'UNKNOWN'), []).append(addr)
+            test_stat = blob.get('status', 'UNKNOWN')
+            by_status.setdefault(test_stat, []).append(addr)
+            if test_config.noise_level >2 and test_stat != 'SUCCESS':
+                excep = blob.get('exception')
+                if excep:
+                    extra_by_addr[addr] = 'Exception: "{}"'.format(excep)
+                else:
+                    brief = blob.get('brief')
+                    if test_config.noise_level > 3:
+                        brief = blob.get('detailed', brief)
+                    if brief:
+                        extra_by_addr[addr] = 'Explanation: "{}"'.format(brief)
+
     status_sorted = [i for i in STATUS_REPORT_ORDER if i in by_status]
     for status_msg in status_sorted:
         addr_list = by_status[status_msg]
         for addr in addr_list:
             a = addr[len(TEST_NAME_PREF):] if addr.startswith(TEST_NAME_PREF) else addr
             print('{} {}'.format(a, status_msg))
+            extra = extra_by_addr.get(addr)
+            if extra:
+                print(extra)
     print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 

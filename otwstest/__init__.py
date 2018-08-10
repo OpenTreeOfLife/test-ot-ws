@@ -540,13 +540,16 @@ class TestingConfig(object):
                 return 'https://devtree.opentreeoflife.org/{}'.format(frag)
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'local':
-            tax_pat = re.compile(r'^(v[0-9.]+)/([a-z]+)/(.+)$')
+            tax_pat = re.compile(r'^(v[0-9.]+)/([a-z_]+)/(.+)$')
             m = tax_pat.match(frag)
             if m:
                 vers, top_level, tail_frag = m.groups()
-                if top_level in ('taxonomy', 'tnrs', 'tree_of_life'):
+                if top_level in ('taxonomy', 'tnrs'):
                     t = 'http://localhost:7474/db/data/ext/{}_{}/graphdb/{}'
                     return t.format(top_level, vers, tail_frag)
+                elif top_level in ('tree_of_life',):
+                    t = 'http://localhost:6543/{}/{}/{}'
+                    return t.format(vers, top_level, tail_frag)
             raise NotImplemented('non-taxonomy local system_to_test')
         if self.system_to_test.startswith('ot'):
             return 'https://{}.opentreeoflife.org/{}'.format(self.system_to_test, frag)

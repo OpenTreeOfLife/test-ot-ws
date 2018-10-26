@@ -712,7 +712,7 @@ def top_main(argv, deleg=None, nested=False):
                    help='Specifies a prefix of a test name. All test names that start with that '
                         'prefix followed by a . will be matched and run')
     API_VERSION_CHOICES = ['v2', 'v3', 'all']
-    p.add_argument('--api-version', choices=API_VERSION_CHOICES, default='all', required=False,
+    p.add_argument('--api-version', choices=API_VERSION_CHOICES, default='v3', required=False,
                    help='specifies which version of the API to test.')
 
     if deleg is None:

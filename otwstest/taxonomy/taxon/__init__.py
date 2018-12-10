@@ -38,7 +38,7 @@ def _check_ott_id(result, outcome, ott_id):
 @all_api_versions
 def test_include_children(outcome):  # taxonomy-sensitive test
     url = outcome.make_url(taxon_url_frag(outcome))
-    result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_children": "true"},
+    result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_children": True},
                                   validator=validate)
     _check_ott_id(result, outcome, 515698, )
     demand_property(u'children', result, outcome, 'taxon')
@@ -52,7 +52,7 @@ def test_include_children(outcome):  # taxonomy-sensitive test
 @all_api_versions
 def test_include_lineage(outcome):
     url = outcome.make_url(taxon_url_frag(outcome))
-    result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_lineage": "true"},
+    result = outcome.do_http_json(url, 'POST', data={"ott_id": 515698, "include_lineage": True},
                                   validator=validate)
     _check_ott_id(result, outcome, 515698)
     demand_property(lineage_prop(outcome), result, outcome, 'taxon')

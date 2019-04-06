@@ -5,7 +5,7 @@ import copy
 import jsonschema
 
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
-from otwstest.schema.primitives import (SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS, )
+from otwstest.schema.primitives import (SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS, SCHEMA_STRING_OR_NONE)
 from otwstest.schema.studies.find_studies import get_find_studies_properties
 
 
@@ -15,8 +15,8 @@ def get_find_trees_properties(version):
     mt['items']['properties'] = {
         'ot:studyId': SCHEMA_STRING(),
         'oti_tree_id': SCHEMA_STRING(),
-        'ot:branchLengthMode': SCHEMA_STRING(),
-        'ot:branchLengthDescription': SCHEMA_STRING(),
+        'ot:branchLengthMode': SCHEMA_STRING_OR_NONE(),
+        'ot:branchLengthDescription': SCHEMA_STRING_OR_NONE(),
     }
     s['matched_studies']['items']['properties']['matched_trees'] = mt
     return s

@@ -39,3 +39,6 @@ def SCHEMA_ARRAY_OBJECTS():
 # noinspection PyPep8Naming
 def SCHEMA_STRING_OR_LIST_OF_STRINGS():
     return {"anyOf": [SCHEMA_STRING(), SCHEMA_ARRAY_OF_STRINGS()]}
+
+def SCHEMA_STRING_OR_NONE():
+    return {"anyOf": [SCHEMA_STRING(), {"type": "null"}]}

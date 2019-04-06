@@ -32,7 +32,7 @@ One time only:
 
     virtualenv -p$(which python3) env
     source env/bin/activate
-    python setup develop
+    python setup.py develop
     source dev/activate.sh
 
 then add:
@@ -90,7 +90,7 @@ So, `test-ot-ws --test=tnrs.test_contexts.v3` would run a test of the
     both the 2 and 3 versions of the API.
  
 ## System to test
-This is used to specify whether or not the tests run against:
+The `--system=` is used to specify whether or not the tests run against:
   * `production` - calls methods on `https://api.opentreeoflife.org` and 
     does not support any tests that write
   * `dev` - calls methods on `https://devapi.opentreeoflife.org`. When 

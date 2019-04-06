@@ -4,12 +4,14 @@ import copy
 import jsonschema
 from otwstest import compose_schema2version, SCHEMA_URL_PREF
 from otwstest.schema.primitives import (SCHEMA_INTEGER,
-                                        SCHEMA_STRING, SCHEMA_ARRAY_OBJECTS, )
+                                        SCHEMA_STRING,
+                                        SCHEMA_ARRAY_OBJECTS,
+                                        SCHEMA_STRING_OR_LIST_OF_STRINGS)
 
 
 # noinspection PyUnusedLocal
 def get_find_studies_properties(version):
-    p = ["ot:studyPublicationReference", "ot:curatorName",
+    p = ["ot:studyPublicationReference",
          "ot:studyId", "ot:studyYear", "ot:focalClade",
          "ot:focalCladeOTTTaxonName", "ot:dataDeposit", "ot:studyPublication"
          ]
@@ -18,6 +20,8 @@ def get_find_studies_properties(version):
         pd[prop] = SCHEMA_STRING()
     for prop in ["ot:studyYear", "ot:focalClade"]:
         pd[prop] = SCHEMA_INTEGER()
+    for prop in ["ot:curatorName"]:
+        pd[prop] = SCHEMA_STRING_OR_LIST_OF_STRINGS()
     ms = SCHEMA_ARRAY_OBJECTS()
     ms['items']['properties'] = pd
     return {'matched_studies': ms}

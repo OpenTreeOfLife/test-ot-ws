@@ -35,3 +35,7 @@ def SCHEMA_ARRAY():
 # noinspection PyPep8Naming
 def SCHEMA_ARRAY_OBJECTS():
     return {"type": "array", "items": SCHEMA_OBJECT()}
+
+# noinspection PyPep8Naming
+def SCHEMA_STRING_OR_LIST_OF_STRINGS():
+    return {"anyOf": [SCHEMA_STRING(), SCHEMA_ARRAY_OF_STRINGS()]}

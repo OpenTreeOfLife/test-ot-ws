@@ -474,7 +474,7 @@ class TestingConfig(object):
                  api_versions=EXPLICIT_API_VERSIONS):
         global DEBUG_OUTPUT, SILENT_MODE
         self.system_to_test = system_to_test.lower()
-        assert self.system_to_test in SYST_CHOICES
+        # assert self.system_to_test in SYST_CHOICES
         self.noise_level = noise_level
         if self.noise_level >= 5:
             DEBUG_OUTPUT = True
@@ -561,6 +561,8 @@ class TestingConfig(object):
             raise NotImplemented('non-taxonomy local system_to_test')
         if self.system_to_test.startswith('ot'):
             return 'https://{}.opentreeoflife.org/{}'.format(self.system_to_test, frag)
+        if self.system_to_test[0].isdigit():
+            return 'http://{}/{}'.format(self.system_to_test, frag)
         assert False
 
     def iter_previous(self):
@@ -700,7 +702,7 @@ def top_main(argv, deleg=None, nested=False):
                         'only used by developers, it records the list of available tests for '
                         'better tab-completion. "curl" writes the curl version of a test\'s call '
                         'to standard output if the test has been run at least once.')
-    p.add_argument('--system', choices=SYST_CHOICES, default=DEF_SYST_CHOICE,
+    p.add_argument('--system', default=DEF_SYST_CHOICE,
                    help='Directs the tests to be run again the main (production) servers by '
                         'default. "dev" runs the test against the development servers, and '
                         '"local" tells the tests to run against the default endpoints used '

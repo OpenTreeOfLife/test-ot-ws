@@ -547,6 +547,10 @@ class TestingConfig(object):
             if front_end:
                 return 'https://devtree.opentreeoflife.org/{}'.format(frag)
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
+        if self.system_to_test == 'otindexdev':
+            if front_end:
+                return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
+            return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'local':
             tax_pat = re.compile(r'^(v[0-9.]+)/([a-z_]+)/(.+)$')
             m = tax_pat.match(frag)

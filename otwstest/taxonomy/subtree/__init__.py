@@ -24,7 +24,7 @@ def test_des_sp(outcome):
     result = outcome.do_http_json(url, 'POST', data={"ott_id": 372706}, validator=validate)
     tree = result[newick_property(outcome.api_version)]
     ROOTTAXONSTR = r"\)Canis_ott372706;"
-    DESCENDANTTAXONSTR = r"\,Canis_lycaon_ott948004\,"
+    DESCENDANTTAXONSTR = r"\,Canis_lupus_lycaon_ott948004\,"
     namecheck = re.compile(ROOTTAXONSTR)
     namecheck2 = re.compile(DESCENDANTTAXONSTR)
     if re.search(namecheck, tree) is None:

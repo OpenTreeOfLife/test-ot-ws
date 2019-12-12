@@ -11,7 +11,7 @@ def test_find_by_ott_id(outcome):
     url = outcome.make_url('studies/find_trees')
     d = {'verbose': True,
          'property': 'ot:ottId',
-         'value': '770315'}
+         'value': '473875'}
     result = outcome.do_http_json(url, verb='POST', data=d, validator=validate)
     for top, sub in result.items():
         if not is_str_type(top):
@@ -29,3 +29,6 @@ def test_find_by_ott_id(outcome):
                 errstr = 'expecting a list of dictionaries, found {}'
                 outcome.exit_test_with_failure(errstr.format(repr(type(s))))
             errstr = 'Did not retrieve study: "{}"'.format(s.keys())
+    if not "pg_704" in matched_studies:
+        errstr = 'taxon ott473875 is in pg_704, but tree was not found.'
+        outcome.exit_test_with_failure(errstr.format(repr(type(s))))

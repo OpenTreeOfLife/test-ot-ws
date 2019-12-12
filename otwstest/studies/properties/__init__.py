@@ -31,3 +31,6 @@ def test_properties(outcome):
     if 'ot:nodeLabelMode' not in result['tree_properties']:
         errstr = 'ot:nodeLabelMode not in tree_properties.'
         outcome.exit_test_with_failure(errstr)
+    if 'ot:ottId' not in result['tree_properties']:
+        errstr = 'ot:nodeLabelMode not in tree_properties.'
+        outcome.exit_test_with_failure(errstr)

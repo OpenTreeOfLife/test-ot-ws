@@ -262,6 +262,7 @@ class TestOutcome(object):
         m = None
         if self.status == TestStatus.UNCAUGHT_EXCEPTION:
             m = 'Exception not handled by test function (please report this error)'
+            m += self._data['exception']
         elif self.status != TestStatus.SUCCESS:
             m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('brief', ''))
         if m:

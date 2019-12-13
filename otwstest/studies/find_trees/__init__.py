@@ -23,8 +23,8 @@ def test_find_by_ott_id(outcome):
         if not isinstance(sub, list):
             errstr = 'expecting a list of matched studies, found {}'
             outcome.exit_test_with_failure(errstr.format(repr(type(sub))))
-        matched_studies.add(sub[0]['ot:studyId'])
         for s in sub:
+            matched_studies.add(s['ot:studyId'])
             if not isinstance(s, dict):
                 errstr = 'expecting a list of dictionaries, found {}'
                 outcome.exit_test_with_failure(errstr.format(repr(type(s))))

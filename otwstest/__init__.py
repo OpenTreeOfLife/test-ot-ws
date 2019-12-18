@@ -262,6 +262,7 @@ class TestOutcome(object):
         m = None
         if self.status == TestStatus.UNCAUGHT_EXCEPTION:
             m = 'Exception not handled by test function (please report this error)'
+            m += self._data['exception']
         elif self.status != TestStatus.SUCCESS:
             m = '{}. {}'.format(_tstatus_to_str(self.status), self.get('brief', ''))
         if m:
@@ -547,6 +548,10 @@ class TestingConfig(object):
             if front_end:
                 return 'https://devtree.opentreeoflife.org/{}'.format(frag)
             return 'https://devapi.opentreeoflife.org/{}'.format(frag)
+        if self.system_to_test == 'otindexdev':
+            if front_end:
+                return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
+            return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
         if self.system_to_test == 'local':
             tax_pat = re.compile(r'^(v[0-9.]+)/([a-z_]+)/(.+)$')
             m = tax_pat.match(frag)

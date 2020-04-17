@@ -6,6 +6,7 @@ from otwstest import all_api_versions
 
 @all_api_versions
 def test_file(outcome):
+    return outcome.exit_test_with_skipped('test_file skipped while we get the supplementary files backup restored following the 11 Apr 2020 hack')
     study_id = 'ot_134'
     url = outcome.make_url('study/{}/file'.format(study_id))
     x = outcome.do_http_json(url)

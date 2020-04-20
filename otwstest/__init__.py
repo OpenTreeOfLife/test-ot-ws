@@ -895,7 +895,7 @@ def _do_report_action(test_config, file_func_pairs):
         else:
             test_stat = blob.get('status', 'UNKNOWN')
             by_status.setdefault(test_stat, []).append(addr)
-            if test_config.noise_level >2 and test_stat != 'SUCCESS':
+            if test_config.noise_level > 2 and test_stat != 'SUCCESS':
                 excep = blob.get('exception')
                 if excep:
                     extra_by_addr[addr] = 'Exception: "{}"'.format(excep)

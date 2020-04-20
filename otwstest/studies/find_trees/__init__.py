@@ -17,7 +17,7 @@ def test_find_by_ott_id(outcome):
         if not is_str_type(top):
             errstr = 'expecting keys of studies/properties to be strings found {}'
             outcome.exit_test_with_failure(errstr.format(repr(top)))
-        if not top=="matched_studies":
+        if not top == "matched_studies":
             errstr = 'Top level key should be "matched_studies", actually is {}'
             outcome.exit_test_with_failure(errstr.format(repr(top)))
         if not isinstance(sub, list):

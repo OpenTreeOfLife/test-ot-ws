@@ -859,7 +859,7 @@ def escape_dq(s):
 
 
 def write_test_as_curl(out, blob):
-    for cblob in blob['calls']:
+    for cblob in blob.get('calls',[]):
         write_call_as_curl(out, cblob)
 
 

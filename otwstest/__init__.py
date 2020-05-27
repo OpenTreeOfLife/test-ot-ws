@@ -336,6 +336,12 @@ class TestOutcome(object):
 
         if resp.status_code != expected_status:
             m = 'Wrong status code. Expected {}. Got {}.'.format(expected_status, resp.status_code)
+            if results and 'message' in results:
+                message = results['message']
+                message = message.rstrip('\n \t')
+                message = '\n'+message;
+                message = re.sub(r'\n','\n      ',message)
+                m += message
             self.exit_test_with_error(m)
         if return_raw_content:
             return resp.text

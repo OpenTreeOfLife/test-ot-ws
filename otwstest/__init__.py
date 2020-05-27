@@ -324,6 +324,7 @@ class TestOutcome(object):
             headers = {'content-type': 'application/json', 'accept': 'application/json', }
         resp, call_out = self.request(verb, url, headers, data=data)
         call_out['expected_status_code'] = expected_status
+        results = None
         if not return_raw_content:
             try:
                 results = resp.json()

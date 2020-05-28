@@ -543,10 +543,9 @@ class TestingConfig(object):
             sys.stderr.write('\n')
 
     def configure_url(self, frag, front_end=False):
-        while frag.startswith('/'):
-            frag = frag[1:]
-        while frag.endswith('/'):
-            frag = frag[:-1]
+        frag = frag.strip('/')
+        if self.system_to_test.startswith('http'):
+            return 'http://{}/{}'.format(self.system_to_test, frag)
         if self.system_to_test == 'production':
             if front_end:
                 return 'https://tree.opentreeoflife.org/{}'.format(frag)
@@ -559,18 +558,8 @@ class TestingConfig(object):
             if front_end:
                 return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
             return 'https://otindexdev.opentreeoflife.org/{}'.format(frag)
-        if self.system_to_test == 'local':
-            tax_pat = re.compile(r'^(v[0-9.]+)/([a-z_]+)/(.+)$')
-            m = tax_pat.match(frag)
-            if m:
-                vers, top_level, tail_frag = m.groups()
-                if top_level in ('taxonomy', 'tnrs'):
-                    t = 'http://localhost:7474/db/data/ext/{}_{}/graphdb/{}'
-                    return t.format(top_level, vers, tail_frag)
-                elif top_level in ('tree_of_life',):
-                    t = 'http://localhost:6543/{}/{}/{}'
-                    return t.format(vers, top_level, tail_frag)
-            raise NotImplemented('non-taxonomy local system_to_test')
+        if self.system_to_test.startswith('localhost'):
+            return 'http://{}/{}'.format(self.system_to_test,frag)
         if self.system_to_test.startswith('ot'):
             return 'https://{}.opentreeoflife.org/{}'.format(self.system_to_test, frag)
         if self.system_to_test[0].isdigit():
@@ -715,12 +704,10 @@ def top_main(argv, deleg=None, nested=False):
                         'better tab-completion. "curl" writes the curl version of a test\'s call '
                         'to standard output if the test has been run at least once.')
     p.add_argument('--system', default=DEF_SYST_CHOICE,
-                   help='Directs the tests to be run again the main (production) servers by '
-                        'default. "dev" runs the test against the development servers, and '
-                        '"local" tells the tests to run against the default endpoints used '
-                        'by developers of Open Tree of Life when testing on their own '
-                        'computers. arguments in the form of "ot#" will be assumed to name'
-                        'machines in the .opentreeoflife.org domain')
+                   help='Selects the system to test:  "production" selects tree/api,'
+                        '  "dev" selects devtree/devapi,  "localhost:port" selects a local instance,'
+                        '  "ot#" selects ot#.opentreeoflife.org, and   "http://host or https://host"'
+                        'selects any host. (default is "production")')
     TEST_CHOICES = get_globbed_test_list()
     p.add_argument('--test', choices=TEST_CHOICES, default=None, required=False,
                    help='Specifies a prefix of a test name. All test names that start with that '

@@ -32,7 +32,7 @@ SCRIPT_NAME = os.path.split(sys.argv[0])[-1]
 DEBUG_OUTPUT, SILENT_MODE, STATUS_OUTPUT = False, False, True
 TEST_CACHE_PAR = os.path.expanduser('~/.opentreeoflife/test-ot-ws')
 TEST_ADDR_LIST = os.path.join(TEST_CACHE_PAR, 'test_addr.json')
-SERVICE_CHOICES = ('frontend', 'taxonomy', 'tnrs', 'tree_of_life', 'studies')
+SERVICE_CHOICES = ('frontend', 'taxonomy', 'tnrs', 'tree_of_life', 'studies', 'conflict')
 DEFAULT_NUM_THREADS = 8
 TEST_NAME_PREF = 'otwstest.'
 SCHEMA_URL_PREF = 'https://files.opentreeoflife.org/api/schema/'
@@ -324,6 +324,7 @@ class TestOutcome(object):
             headers = {'content-type': 'application/json', 'accept': 'application/json', }
         resp, call_out = self.request(verb, url, headers, data=data)
         call_out['expected_status_code'] = expected_status
+        results = None
         if not return_raw_content:
             try:
                 results = resp.json()
@@ -336,6 +337,12 @@ class TestOutcome(object):
 
         if resp.status_code != expected_status:
             m = 'Wrong status code. Expected {}. Got {}.'.format(expected_status, resp.status_code)
+            if results and 'message' in results:
+                message = results['message']
+                message = message.rstrip('\n \t')
+                message = '\n'+message;
+                message = re.sub(r'\n','\n      ',message)
+                m += message
             self.exit_test_with_error(m)
         if return_raw_content:
             return resp.text
@@ -918,4 +925,4 @@ def _do_report_action(test_config, file_func_pairs):
     print(' '.join(['#{}={}.'.format(i, len(by_status[i])) for i in status_sorted]))
 
 
-from . import frontend, taxonomy, tnrs, tree_of_life, studies, schema
+from . import frontend, taxonomy, tnrs, tree_of_life, studies, conflict, schema

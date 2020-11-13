@@ -20,7 +20,7 @@ def test_simple(outcome):
 @not_v2_version
 def test_400_expected(outcome):
     url = outcome.make_url('tree_of_life/induced_subtree')
-    data = {u"ott_ids": [292466, 501678, 267845, 666104, 316878, 102710, 176458]}
+    data = {u"ott_ids": [292466, 501678, 267845, 666104, 316878, 102710, 176458, 999999999]}
     outcome.do_http_json(url, 'POST',
                          data=data,
                          expected_status=400)
